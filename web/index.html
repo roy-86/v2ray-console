@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V2Ray Console</title>
+  <link rel="icon" type="image/png" sizes="16x16" href="../icons/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="../icons/favicon-48x48.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="header">
+  <h1>V2Ray <span>Console</span></h1>
+  <div class="header-right">
+    <button class="btn btn-outline btn-sm" onclick="refreshConfig()">🔄 刷新</button>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <div class="status-indicator">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">检查中...</span>
+    </div>
+    <div class="status-info">
+      <span>版本: <strong id="versionText">-</strong></span>
+    </div>
+    <div class="controls" style="margin-left:auto">
+      <button class="btn btn-primary" id="btnStart" onclick="doStart()">▶ 启动</button>
+      <button class="btn btn-danger" id="btnStop" onclick="doStop()">■ 停止</button>
+      <button class="btn btn-warning" id="btnRestart" onclick="doRestart()">↻ 重启</button>
+    </div>
+  </div>
+
+  <!-- Config Card -->
+  <div class="card">
+    <div class="card-header">
+      <h2>配置文件</h2>
+      <div class="tabs">
+        <button class="tab-btn active" id="tabFormBtn" onclick="switchTab('form')">可视化编辑</button>
+        <button class="tab-btn" id="tabJsonBtn" onclick="switchTab('json')">JSON 编辑</button>
+      </div>
+      <div>
+        <button class="btn btn-primary btn-sm" onclick="saveConfig()">💾 保存并应用</button>
+        <button class="btn btn-outline btn-sm" id="formatBtn" onclick="formatConfig()" style="display:none">格式化</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="formPanel">
+        <div class="empty-state" id="emptyState">
+          <div class="icon">📋</div>
+          <h3>暂无配置</h3>
+          <p>选择下方快速模板开始，或切换到 JSON 编辑模式手动粘贴配置。</p>
+          <div class="actions">
+            <button class="btn btn-primary btn-sm" onclick="loadTemplate('socks-client')">SOCKS5 + VMess</button>
+            <button class="btn btn-outline btn-sm" onclick="loadTemplate('vless-reality')">VLESS + Reality</button>
+          </div>
+        </div>
+        <div id="configForm" style="display:none"></div>
+      </div>
+      <div id="jsonPanel" style="display:none">
+        <div class="config-editor">
+          <textarea id="configEditor" placeholder="粘贴 V2Ray 配置文件 (JSON) ..." spellcheck="false"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Template -->
+  <div class="card">
+    <div class="card-header">
+      <h2>快速模板</h2>
+    </div>
+    <div class="card-body">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="loadTemplate('socks-client')" style="border-color:#dbeafe;color:#1d4ed8">🧦 SOCKS5 + VMess</button>
+        <button class="btn btn-outline btn-sm" onclick="loadTemplate('http-client')" style="border-color:#fef3c7;color:#b45309">🌐 HTTP + VMess</button>
+        <button class="btn btn-outline btn-sm" onclick="loadTemplate('vless-reality')" style="border-color:#fce7f3;color:#be185d">🔒 VLESS + Reality</button>
+        <button class="btn btn-outline btn-sm" onclick="loadTemplate('shadowsocks')" style="border-color:#d1fae5;color:#047857">⚡ Shadowsocks</button>
+      </div>
+      <p style="margin-top:12px;font-size:13px;color:var(--text-muted);line-height:1.5">
+        选择一个模板快速生成配置文件，然后根据你的服务器信息修改出站配置。
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
