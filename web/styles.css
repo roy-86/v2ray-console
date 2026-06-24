@@ -925,8 +925,22 @@ body {
   color: var(--text-muted);
 }
 .collapsible-header.open .arrow { transform: rotate(90deg); }
-.collapsible-body { display: none; margin-top: 10px; }
-.collapsible-body.open { display: block; animation: slideDown .2s var(--ease-out); }
+.collapsible-body { display: none; margin-top: 8px; }
+.collapsible-body.open {
+  display: block;
+  animation: slideDown .2s var(--ease-out);
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+/* Nest boundary for non-collapsible sub-sections inside collapsible */
+.collapsible-body .sub-section-title {
+  margin-top: 0;
+}
+.collapsible-body .form-row + .form-row {
+  margin-top: 2px;
+}
 @keyframes slideDown {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
