@@ -653,7 +653,7 @@ body {
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 10px;
-  align-items: flex-start;
+  align-items: flex-end;
 }
 .form-row:last-child { margin-bottom: 0; }
 .form-group {
@@ -662,7 +662,7 @@ body {
   gap: 4px;
   min-width: 0;
 }
-.form-group label {
+.form-group > label {
   font-size: 11px;
   font-weight: 600;
   color: var(--text-secondary);
@@ -670,6 +670,8 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
+  line-height: 1.2;
+  padding-top: 2px;
 }
 .form-input, .form-select {
   padding: 7px 11px;
@@ -681,6 +683,7 @@ body {
   transition: var(--transition);
   font-family: inherit;
   line-height: 1.4;
+  height: 34px;
 }
 .form-input:hover, .form-select:hover { border-color: var(--border-strong); }
 .form-input:focus, .form-select:focus {
@@ -691,6 +694,26 @@ body {
 .form-input { width: 100%; }
 .form-select { min-width: 110px; cursor: pointer; }
 .form-input::placeholder { color: var(--text-faint); }
+
+/* —— User Row (VMess/VLESS users) —— */
+.user-row {
+  align-items: flex-end;
+}
+.user-row .form-group {
+  flex-shrink: 0;
+}
+.uuid-input {
+  width: 260px !important;
+  font-family: var(--font-mono) !important;
+  letter-spacing: .02em;
+}
+.short-input {
+  width: 64px !important;
+  text-align: center;
+}
+.security-select {
+  min-width: 110px !important;
+}
 
 .form-checkbox {
   display: inline-flex;

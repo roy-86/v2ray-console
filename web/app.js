@@ -441,15 +441,15 @@ function buildInboundSettingsByProtocol(ib, i, proto) {
     case 'vmess': {
       const clients = s.clients || [{id:'',alterId:0,security:'auto',level:1}];
       clients.forEach((c,ci) => {
-        h += '<div class="form-row" style="align-items:end">';
-        h += '<div class="form-group"><label>用户 #'+(ci+1)+' UUID</label><div style="display:flex;gap:4px"><input class="form-input" data-path="inbounds.'+i+'.settings.clients.'+ci+'.id" value="'+esc(c.id||'')+'" style="width:240px;font-family:monospace;font-size:12px" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">';
+        h += '<div class="form-row user-row">';
+        h += '<div class="form-group"><label>用户 #'+(ci+1)+' UUID</label><div style="display:flex;gap:4px;align-items:center"><input class="form-input uuid-input" data-path="inbounds.'+i+'.settings.clients.'+ci+'.id" value="'+esc(c.id||'')+'" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">';
         h += '<button class="btn btn-outline btn-xs" type="button" onclick="generateUUIDFor(this)">🎲</button></div></div>';
-        h += '<div class="form-group"><label>alterId</label><input class="form-input" type="number" data-path="inbounds.'+i+'.settings.clients.'+ci+'.alterId" value="'+(c.alterId||0)+'" style="width:60px"> <span class="hint">默认: 0</span></div>';
-        h += '<div class="form-group"><label>加密</label><select class="form-select" data-path="inbounds.'+i+'.settings.clients.'+ci+'.security">';
+        h += '<div class="form-group"><label>alterId</label><input class="form-input short-input" type="number" data-path="inbounds.'+i+'.settings.clients.'+ci+'.alterId" value="'+(c.alterId||0)+'"></div>';
+        h += '<div class="form-group"><label>加密</label><select class="form-select security-select" data-path="inbounds.'+i+'.settings.clients.'+ci+'.security">';
         ['auto','aes-128-gcm','chacha20-poly1305','none','zero'].forEach(v => { h += '<option value="'+v+'"'+(c.security===v?' selected':'')+'>'+v+'</option>'; });
         h += '</select></div>';
-        h += '<div class="form-group"><label>Level</label><input class="form-input" type="number" data-path="inbounds.'+i+'.settings.clients.'+ci+'.level" value="'+(c.level||1)+'" style="width:50px"> <span class="hint">默认: 1</span></div>';
-        h += ci>0 ? '<button class="btn-remove" data-action="remove-inbound-client" data-ib-index="'+i+'" data-c-index="'+ci+'" style="margin-bottom:4px">✕</button>' : '';
+        h += '<div class="form-group"><label>Level</label><input class="form-input short-input" type="number" data-path="inbounds.'+i+'.settings.clients.'+ci+'.level" value="'+(c.level||1)+'"></div>';
+        h += ci>0 ? '<button class="btn-remove" data-action="remove-inbound-client" data-ib-index="'+i+'" data-c-index="'+ci+'">✕</button>' : '';
         h += '</div>';
       });
       h += '<div class="array-actions"><button class="btn-add" data-action="add-inbound-client" data-ib-index="'+i+'">➕ 添加用户</button></div>';
@@ -458,16 +458,16 @@ function buildInboundSettingsByProtocol(ib, i, proto) {
     case 'vless': {
       const clients = s.clients || [{id:'',flow:'',encryption:'none',level:1}];
       clients.forEach((c,ci) => {
-        h += '<div class="form-row" style="align-items:end">';
-        h += '<div class="form-group"><label>用户 #'+(ci+1)+' ID</label><div style="display:flex;gap:4px"><input class="form-input" data-path="inbounds.'+i+'.settings.clients.'+ci+'.id" value="'+esc(c.id||'')+'" style="width:200px;font-family:monospace;font-size:12px" placeholder="UUID">';
+        h += '<div class="form-row user-row">';
+        h += '<div class="form-group"><label>用户 #'+(ci+1)+' ID</label><div style="display:flex;gap:4px;align-items:center"><input class="form-input uuid-input" data-path="inbounds.'+i+'.settings.clients.'+ci+'.id" value="'+esc(c.id||'')+'" placeholder="UUID">';
         h += '<button class="btn btn-outline btn-xs" type="button" onclick="generateUUIDFor(this)">🎲</button></div></div>';
-        h += '<div class="form-group"><label>流控 (flow)</label><select class="form-select" data-path="inbounds.'+i+'.settings.clients.'+ci+'.flow">';
+        h += '<div class="form-group"><label>流控 (flow)</label><select class="form-select security-select" data-path="inbounds.'+i+'.settings.clients.'+ci+'.flow">';
         ['','xtls-rprx-vision','xtls-rprx-vision-udp443'].forEach(v => { h += '<option value="'+v+'"'+(c.flow===v?' selected':'')+'>'+(v||'无')+'</option>'; });
         h += '</select></div>';
-        h += '<div class="form-group"><label>加密</label><select class="form-select" data-path="inbounds.'+i+'.settings.clients.'+ci+'.encryption">';
+        h += '<div class="form-group"><label>加密</label><select class="form-select security-select" data-path="inbounds.'+i+'.settings.clients.'+ci+'.encryption">';
         ['none'].forEach(v => { h += '<option value="'+v+'"'+(c.encryption===v?' selected':'')+'>'+v+'</option>'; });
         h += '</select></div>';
-        h += ci>0 ? '<button class="btn-remove" data-action="remove-inbound-client" data-ib-index="'+i+'" data-c-index="'+ci+'" style="margin-bottom:4px">✕</button>' : '';
+        h += ci>0 ? '<button class="btn-remove" data-action="remove-inbound-client" data-ib-index="'+i+'" data-c-index="'+ci+'">✕</button>' : '';
         h += '</div>';
       });
       h += '<div class="array-actions"><button class="btn-add" data-action="add-inbound-client" data-ib-index="'+i+'">➕ 添加用户</button></div>';
@@ -485,10 +485,10 @@ function buildInboundSettingsByProtocol(ib, i, proto) {
     }
     case 'trojan': {
       (s.clients||[{password:'',level:1}]).forEach((c,ci) => {
-        h += '<div class="form-row" style="align-items:end">';
+        h += '<div class="form-row user-row">';
         h += '<div class="form-group"><label>密码 #'+(ci+1)+'</label><input class="form-input" data-path="inbounds.'+i+'.settings.clients.'+ci+'.password" value="'+esc(c.password||'')+'" style="width:200px"></div>';
-        h += '<div class="form-group"><label>Level</label><input class="form-input" type="number" data-path="inbounds.'+i+'.settings.clients.'+ci+'.level" value="'+(c.level||1)+'" style="width:50px"> <span class="hint">默认: 1</span></div>';
-        h += ci>0 ? '<button class="btn-remove" data-action="remove-inbound-client" data-ib-index="'+i+'" data-c-index="'+ci+'" style="margin-bottom:4px">✕</button>' : '';
+        h += '<div class="form-group"><label>Level</label><input class="form-input short-input" type="number" data-path="inbounds.'+i+'.settings.clients.'+ci+'.level" value="'+(c.level||1)+'"></div>';
+        h += ci>0 ? '<button class="btn-remove" data-action="remove-inbound-client" data-ib-index="'+i+'" data-c-index="'+ci+'">✕</button>' : '';
         h += '</div>';
       });
       h += '<div class="array-actions"><button class="btn-add" data-action="add-inbound-client" data-ib-index="'+i+'">➕ 添加用户</button></div>';
@@ -620,10 +620,10 @@ function buildOutboundSettingsByProtocol(ob, i, proto) {
         h += '</div>';
         const users = vn.users || [{id:'',encryption:'none',flow:'',level:1}];
         users.forEach((u, ui) => {
-          h += '<div class="form-row" style="align-items:end;margin-top:6px">';
-          h += '<div class="form-group"><label>用户 #'+(ui+1)+' ID</label><div style="display:flex;gap:4px"><input class="form-input" data-path="outbounds.'+i+'.settings.vnext.'+vi+'.users.'+ui+'.id" value="'+esc(u.id||'')+'" style="width:200px;font-family:monospace;font-size:12px" placeholder="UUID">';
+          h += '<div class="form-row user-row" style="margin-top:6px">';
+          h += '<div class="form-group"><label>用户 #'+(ui+1)+' ID</label><div style="display:flex;gap:4px;align-items:center"><input class="form-input uuid-input" data-path="outbounds.'+i+'.settings.vnext.'+vi+'.users.'+ui+'.id" value="'+esc(u.id||'')+'" placeholder="UUID">';
           h += '<button class="btn btn-outline btn-xs" onclick="generateUUIDFor(this)">🎲</button></div></div>';
-          h += '<div class="form-group"><label>流控</label><select class="form-select" data-path="outbounds.'+i+'.settings.vnext.'+vi+'.users.'+ui+'.flow">';
+          h += '<div class="form-group"><label>流控</label><select class="form-select security-select" data-path="outbounds.'+i+'.settings.vnext.'+vi+'.users.'+ui+'.flow">';
           ['','xtls-rprx-vision'].forEach(v => { h += '<option value="'+v+'"'+(u.flow===v?' selected':'')+'>'+(v||'无')+'</option>'; });
           h += '</select></div>';
           h += '</div>';
@@ -705,15 +705,15 @@ function buildVnextItem(vn, obIdx, vnIdx) {
 }
 
 function buildUserItem(u, obIdx, vnIdx, uIdx) {
-  let h = '<div class="form-row" style="align-items:end">';
-  h += '<div class="form-group"><label>UUID</label><div style="display:flex;gap:4px"><input class="form-input" data-path="outbounds.'+obIdx+'.settings.vnext.'+vnIdx+'.users.'+uIdx+'.id" value="'+esc(u.id||'')+'" style="width:240px;font-family:monospace;font-size:12px" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">';
+  let h = '<div class="form-row user-row">';
+  h += '<div class="form-group"><label>UUID</label><div style="display:flex;gap:4px;align-items:center"><input class="form-input uuid-input" data-path="outbounds.'+obIdx+'.settings.vnext.'+vnIdx+'.users.'+uIdx+'.id" value="'+esc(u.id||'')+'" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">';
   h += '<button class="btn btn-outline btn-xs" type="button" onclick="generateUUIDFor(this)" title="生成随机 UUID">🎲</button></div></div>';
-  h += '<div class="form-group"><label>alterId</label><input class="form-input" type="number" data-path="outbounds.'+obIdx+'.settings.vnext.'+vnIdx+'.users.'+uIdx+'.alterId" value="'+(u.alterId||0)+'" style="width:60px"> <span class="hint">默认: 0</span></div>';
-  h += '<div class="form-group"><label>安全</label><select class="form-select" data-path="outbounds.'+obIdx+'.settings.vnext.'+vnIdx+'.users.'+uIdx+'.security">';
+  h += '<div class="form-group"><label>alterId</label><input class="form-input short-input" type="number" data-path="outbounds.'+obIdx+'.settings.vnext.'+vnIdx+'.users.'+uIdx+'.alterId" value="'+(u.alterId||0)+'"></div>';
+  h += '<div class="form-group"><label>安全</label><select class="form-select security-select" data-path="outbounds.'+obIdx+'.settings.vnext.'+vnIdx+'.users.'+uIdx+'.security">';
   ['auto','aes-128-gcm','chacha20-poly1305','none','zero'].forEach(s => { h += '<option value="'+s+'"'+((u.security||'auto')===s?' selected':'')+'>'+s+'</option>'; });
   h += '</select></div>';
-  h += '<div class="form-group"><label>Level</label><input class="form-input" type="number" data-path="outbounds.'+obIdx+'.settings.vnext.'+vnIdx+'.users.'+uIdx+'.level" value="'+(u.level||1)+'" style="width:50px"> <span class="hint">默认: 1</span></div>';
-  h += '<button class="btn-remove" data-action="remove-user" data-ob-index="'+obIdx+'" data-vn-index="'+vnIdx+'" data-u-index="'+uIdx+'" title="删除用户" style="margin-bottom:4px">✕</button>';
+  h += '<div class="form-group"><label>Level</label><input class="form-input short-input" type="number" data-path="outbounds.'+obIdx+'.settings.vnext.'+vnIdx+'.users.'+uIdx+'.level" value="'+(u.level||1)+'"></div>';
+  h += '<button class="btn-remove" data-action="remove-user" data-ob-index="'+obIdx+'" data-vn-index="'+vnIdx+'" data-u-index="'+uIdx+'" title="删除用户">✕</button>';
   h += '</div>';
   return h;
 }
@@ -1347,7 +1347,134 @@ function reloadInboundSettings(idx) {
   container.innerHTML = buildInboundSettingsByProtocol(ib, idx, ib.protocol);
 }
 
+// ─── Overview Dashboard ───────────────────────
+function updateOverview() {
+  const inbs = state.inbounds || [];
+  const obs = state.outbounds || [];
+  const rules = (state.routing && state.routing.settings && state.routing.settings.rules) || [];
+  const ports = inbs.map(ib => ib.port).filter(Boolean);
+  const uniquePorts = new Set(ports);
+
+  document.getElementById('ovInbounds').textContent = inbs.length;
+  document.getElementById('ovOutbounds').textContent = obs.length;
+  document.getElementById('ovRules').textContent = rules.length;
+  document.getElementById('ovPorts').textContent = uniquePorts.size;
+
+  document.getElementById('ovInboundsDetail').innerHTML = protoChips(countBy(inbs.map(ib => ib.protocol))) || '无入站';
+  document.getElementById('ovOutboundsDetail').innerHTML = protoChips(countBy(obs.map(ob => ob.protocol))) || '无出站';
+  document.getElementById('ovRulesDetail').textContent = rules.length + ' 条规则';
+  document.getElementById('ovPortsDetail').textContent = ports.length ? ports.join(' · ') : '无监听';
+}
+function countBy(arr) {
+  return arr.reduce((acc, v) => { if (v) acc[v] = (acc[v]||0)+1; return acc; }, {});
+}
+function protoChips(counts) {
+  return Object.entries(counts).map(([k,v]) =>
+    '<span class="proto-chip">' + esc(k) + (v>1?' ×'+v:'') + '</span>'
+  ).join('');
+}
+
+// ─── Config: Copy / Export / Import ───────────
+async function copyConfig() {
+  const text = currentTab === 'json'
+    ? document.getElementById('configEditor').value
+    : JSON.stringify(buildConfigObject(), null, 2);
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('配置已复制到剪贴板');
+  } catch(e) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast('配置已复制'); }
+    catch(e2) { showToast('复制失败，请手动选择', 'error'); }
+    document.body.removeChild(ta);
+  }
+}
+
+function exportConfig() {
+  const text = currentTab === 'json'
+    ? document.getElementById('configEditor').value
+    : JSON.stringify(buildConfigObject(), null, 2);
+  const blob = new Blob([text], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  a.href = url;
+  a.download = 'v2ray-config-' + ts + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('配置已导出为文件');
+}
+
+function importConfig(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      populateState(parsed);
+      if (currentTab !== 'form') switchTab('form');
+      buildForm();
+      showToast('配置已导入: ' + file.name);
+    } catch(err) {
+      showToast('文件解析失败: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+}
+
+// ─── Theme ────────────────────────────────────
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('v2ray-theme', next);
+  const btn = document.getElementById('themeBtn');
+  if (btn) btn.textContent = next === 'dark' ? '☀️' : '🌙';
+}
+
 // ─── Init ──────────────────────────────────────
+(function initThemeBtn() {
+  const cur = document.documentElement.getAttribute('data-theme') || 'light';
+  const btn = document.getElementById('themeBtn');
+  if (btn) btn.textContent = cur === 'dark' ? '☀️' : '🌙';
+})();
+
+(function initJsonEditor() {
+  const editor = document.getElementById('configEditor');
+  if (!editor) return;
+  editor.addEventListener('input', () => { updateJsonGutter(); updateCharCount(); });
+  editor.addEventListener('scroll', () => {
+    const gutter = document.getElementById('jsonGutter');
+    if (gutter) gutter.scrollTop = editor.scrollTop;
+  });
+  editor.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const s = editor.selectionStart, en = editor.selectionEnd;
+      editor.value = editor.value.slice(0, s) + '  ' + editor.value.slice(en);
+      editor.selectionStart = editor.selectionEnd = s + 2;
+      updateJsonGutter(); updateCharCount();
+    }
+  });
+})();
+
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')) {
+    e.preventDefault();
+    saveConfig();
+  }
+});
+
+updateOverview();
 checkStatus();
 setInterval(checkStatus, 5000);
 refreshConfig().catch(() => {});
