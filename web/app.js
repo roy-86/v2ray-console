@@ -10,39 +10,86 @@ async function api(path, method = 'GET', body) {
 
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  const icons = { success: '✓', error: '✕', warning: '!' };
+  t.innerHTML = '<span class="toast-icon">' + (icons[type] || '✓') + '</span><span>' + esc(msg) + '</span>';
   t.className = 'toast ' + type + ' show';
-  setTimeout(() => t.classList.remove('show'), 3000);
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
 // ─── 状态 ──────────────────────────────────────
+let _runningSince = null;
+let _uptimeTimer = null;
+
 async function checkStatus() {
+  const t0 = performance.now();
+  let data;
   try {
-    const data = await api('/api/status');
-    const dot = document.getElementById('statusDot');
-    const text = document.getElementById('statusText');
-    const ver = document.getElementById('versionText');
-    ver.textContent = data.version || '-';
-    if (data.running) {
-      dot.className = 'status-dot running';
-      text.textContent = '运行中';
-      document.getElementById('btnStart').disabled = true;
-      document.getElementById('btnStop').disabled = false;
-      document.getElementById('btnRestart').disabled = false;
-    } else {
-      dot.className = 'status-dot stopped';
-      text.textContent = '已停止';
-      document.getElementById('btnStart').disabled = false;
-      document.getElementById('btnStop').disabled = true;
-      document.getElementById('btnRestart').disabled = true;
-    }
+    data = await api('/api/status');
   } catch(e) {
-    document.getElementById('statusDot').className = 'status-dot error';
-    document.getElementById('statusText').textContent = '连接失败';
+    setStatusState('error', '连接失败');
+    setControlsDisabled(true);
+    document.getElementById('uptimeWrap').style.display = 'none';
+    document.getElementById('latencyWrap').style.display = 'none';
+    stopUptimeTimer();
+    return;
+  }
+  const latency = Math.round(performance.now() - t0);
+  document.getElementById('versionText').textContent = data.version || '—';
+
+  if (data.running) {
+    if (!_runningSince) _runningSince = Date.now();
+    setStatusState('running', '运行中');
     document.getElementById('btnStart').disabled = true;
+    document.getElementById('btnStop').disabled = false;
+    document.getElementById('btnRestart').disabled = false;
+    document.getElementById('uptimeWrap').style.display = '';
+    document.getElementById('latencyWrap').style.display = '';
+    document.getElementById('latencyText').textContent = latency + 'ms';
+    startUptimeTimer();
+  } else {
+    _runningSince = null;
+    setStatusState('stopped', '已停止');
+    document.getElementById('btnStart').disabled = false;
     document.getElementById('btnStop').disabled = true;
     document.getElementById('btnRestart').disabled = true;
+    document.getElementById('uptimeWrap').style.display = 'none';
+    document.getElementById('latencyWrap').style.display = 'none';
+    stopUptimeTimer();
   }
+}
+
+function setStatusState(state, label) {
+  const hero = document.getElementById('statusHero');
+  const hStatus = document.getElementById('headerStatus');
+  if (hero) { hero.classList.remove('running','stopped','error'); hero.classList.add(state); }
+  if (hStatus) { hStatus.classList.remove('running','stopped','error'); hStatus.classList.add(state); }
+  document.getElementById('statusText').textContent = label;
+  document.getElementById('headerStatusText').textContent = label;
+}
+
+function setControlsDisabled(disabled) {
+  document.getElementById('btnStart').disabled = disabled;
+  document.getElementById('btnStop').disabled = disabled;
+  document.getElementById('btnRestart').disabled = disabled;
+}
+
+function startUptimeTimer() {
+  if (_uptimeTimer) return;
+  const tick = () => {
+    if (!_runningSince) return;
+    const sec = Math.floor((Date.now() - _runningSince) / 1000);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    const el = document.getElementById('uptimeText');
+    if (el) el.textContent = (h > 0 ? h + 'h ' : '') + (m > 0 ? m + 'm ' : '') + s + 's';
+  };
+  tick();
+  _uptimeTimer = setInterval(tick, 1000);
+}
+function stopUptimeTimer() {
+  if (_uptimeTimer) { clearInterval(_uptimeTimer); _uptimeTimer = null; }
 }
 
 // ─── 控制 ──────────────────────────────────────
@@ -144,6 +191,25 @@ function switchTab(tab) {
 function syncStateToEditor() {
   const config = buildConfigObject();
   document.getElementById('configEditor').value = JSON.stringify(config, null, 2);
+  updateJsonGutter();
+  updateCharCount();
+}
+
+function updateJsonGutter() {
+  const editor = document.getElementById('configEditor');
+  const gutter = document.getElementById('jsonGutter');
+  if (!editor || !gutter) return;
+  const lines = editor.value.split('\n').length;
+  let s = '';
+  for (let i = 1; i <= lines; i++) s += i + '\n';
+  gutter.textContent = s ? s.slice(0, -1) : '1';
+  gutter.scrollTop = editor.scrollTop;
+}
+
+function updateCharCount() {
+  const editor = document.getElementById('configEditor');
+  const el = document.getElementById('configCharCount');
+  if (editor && el) el.textContent = editor.value.length + ' 字符';
 }
 
 function buildConfigObject() {
@@ -306,6 +372,7 @@ function buildForm() {
   html += '  <div class="collapsible-body">' + buildPolicySection() + '</div>';
   html += '</div>';
   document.getElementById('configForm').innerHTML = html;
+  updateOverview();
 }
 
 // ─── Inbounds ──────────────────────────────────
@@ -1045,7 +1112,10 @@ async function refreshConfig() {
     }
     if (currentTab === 'json') {
       document.getElementById('configEditor').value = JSON.stringify(parsed, null, 2);
+      updateJsonGutter();
+      updateCharCount();
     }
+    updateOverview();
     showToast('配置已加载');
   } catch(e) {
     if (currentTab === 'form') {
@@ -1079,6 +1149,7 @@ async function saveConfig() {
   }
   try {
     await api('/api/config', 'PUT', { config: configStr });
+    updateOverview();
     showToast('配置已保存并应用');
     checkStatus();
   } catch(e) {

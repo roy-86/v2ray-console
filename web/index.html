@@ -8,43 +8,100 @@
   <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="48x48" href="../icons/favicon-48x48.png">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // 主题提前应用，避免闪烁
+    (function() {
+      var t = localStorage.getItem('v2ray-theme');
+      if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
 </head>
 <body>
-<div class="header">
-  <h1>V2Ray <span>Console</span></h1>
-  <div class="header-right">
-    <button class="btn btn-outline btn-sm" onclick="refreshConfig()">🔄 刷新</button>
+
+<header class="header">
+  <div class="header-left">
+    <div class="brand">
+      <div class="brand-mark">V</div>
+      <span class="brand-name">V2Ray <span>Console</span></span>
+    </div>
+    <div class="header-divider"></div>
+    <div class="header-status" id="headerStatus">
+      <span class="dot"></span>
+      <span id="headerStatusText">检查中</span>
+    </div>
   </div>
-</div>
+  <div class="header-right">
+    <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题" aria-label="切换主题">🌙</button>
+    <button class="icon-btn" onclick="refreshConfig()" title="刷新配置" aria-label="刷新配置">↻</button>
+  </div>
+</header>
 
 <div class="container">
-  <!-- Status Bar -->
-  <div class="status-bar">
-    <div class="status-indicator">
-      <div class="status-dot" id="statusDot"></div>
-      <span id="statusText">检查中...</span>
+
+  <!-- Status Hero -->
+  <section class="status-bar status-hero" id="statusHero">
+    <div class="status-hero-main">
+      <div class="status-orb"><span class="orb-dot"></span></div>
+      <div class="status-text-block">
+        <div class="status-label">运行状态</div>
+        <div class="status-value" id="statusText">检查中…</div>
+        <div class="status-meta">
+          <span>版本 <strong id="versionText">—</strong></span>
+          <span class="meta-sep">·</span>
+          <span id="uptimeWrap" style="display:none">运行时长 <strong id="uptimeText">—</strong></span>
+          <span id="latencyWrap" style="display:none">响应 <strong id="latencyText">—</strong></span>
+        </div>
+      </div>
     </div>
-    <div class="status-info">
-      <span>版本: <strong id="versionText">-</strong></span>
+    <div class="status-controls">
+      <button class="btn btn-success btn-sm" id="btnStart" onclick="doStart()">▶ 启动</button>
+      <button class="btn btn-danger btn-sm" id="btnStop" onclick="doStop()">■ 停止</button>
+      <button class="btn btn-warning btn-sm" id="btnRestart" onclick="doRestart()">↻ 重启</button>
     </div>
-    <div class="controls" style="margin-left:auto">
-      <button class="btn btn-primary" id="btnStart" onclick="doStart()">▶ 启动</button>
-      <button class="btn btn-danger" id="btnStop" onclick="doStop()">■ 停止</button>
-      <button class="btn btn-warning" id="btnRestart" onclick="doRestart()">↻ 重启</button>
+  </section>
+
+  <!-- Overview Dashboard -->
+  <section class="overview" id="overview">
+    <div class="overview-cell">
+      <div class="overview-cell-label">📥 入站</div>
+      <div class="overview-cell-value" id="ovInbounds">0</div>
+      <div class="overview-cell-detail" id="ovInboundsDetail">—</div>
     </div>
-  </div>
+    <div class="overview-cell">
+      <div class="overview-cell-label">📤 出站</div>
+      <div class="overview-cell-value" id="ovOutbounds">0</div>
+      <div class="overview-cell-detail" id="ovOutboundsDetail">—</div>
+    </div>
+    <div class="overview-cell">
+      <div class="overview-cell-label">🔀 路由规则</div>
+      <div class="overview-cell-value" id="ovRules">0</div>
+      <div class="overview-cell-detail" id="ovRulesDetail">条规则</div>
+    </div>
+    <div class="overview-cell">
+      <div class="overview-cell-label">📡 监听端口</div>
+      <div class="overview-cell-value" id="ovPorts">0</div>
+      <div class="overview-cell-detail" id="ovPortsDetail">个端口</div>
+    </div>
+  </section>
 
   <!-- Config Card -->
   <div class="card">
     <div class="card-header">
-      <h2>配置文件</h2>
-      <div class="tabs">
-        <button class="tab-btn active" id="tabFormBtn" onclick="switchTab('form')">可视化编辑</button>
-        <button class="tab-btn" id="tabJsonBtn" onclick="switchTab('json')">JSON 编辑</button>
+      <h2>配置文件 <span class="count" id="configCharCount">0 字符</span></h2>
+      <div class="card-header-tools">
+        <div class="tabs">
+          <button class="tab-btn active" id="tabFormBtn" onclick="switchTab('form')">可视化</button>
+          <button class="tab-btn" id="tabJsonBtn" onclick="switchTab('json')">JSON</button>
+        </div>
       </div>
-      <div>
-        <button class="btn btn-primary btn-sm" onclick="saveConfig()">💾 保存并应用</button>
-        <button class="btn btn-outline btn-sm" id="formatBtn" onclick="formatConfig()" style="display:none">格式化</button>
+      <div class="card-header-tools">
+        <button class="btn btn-ghost btn-xs" id="copyBtn" onclick="copyConfig()" title="复制配置到剪贴板">⧉ 复制</button>
+        <button class="btn btn-ghost btn-xs" id="exportBtn" onclick="exportConfig()" title="下载为文件">⬇ 导出</button>
+        <button class="btn btn-ghost btn-xs" id="importBtn" onclick="document.getElementById('importFile').click()" title="从文件导入">⬆ 导入</button>
+        <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importConfig(event)">
+        <button class="btn btn-ghost btn-xs" id="formatBtn" onclick="formatConfig()" style="display:none">⟳ 格式化</button>
+        <button class="btn btn-primary btn-sm" onclick="saveConfig()">💾 保存 <span class="kbd">⌘S</span></button>
       </div>
     </div>
     <div class="card-body">
@@ -52,17 +109,19 @@
         <div class="empty-state" id="emptyState">
           <div class="icon">📋</div>
           <h3>暂无配置</h3>
-          <p>选择下方快速模板开始，或切换到 JSON 编辑模式手动粘贴配置。</p>
+          <p>选择下方快速模板开始，或切换到 JSON 编辑模式手动粘贴配置，也可以从文件导入已有配置。</p>
           <div class="actions">
             <button class="btn btn-primary btn-sm" onclick="loadTemplate('socks-client')">SOCKS5 + VMess</button>
             <button class="btn btn-outline btn-sm" onclick="loadTemplate('vless-reality')">VLESS + Reality</button>
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('importFile').click()">从文件导入</button>
           </div>
         </div>
         <div id="configForm" style="display:none"></div>
       </div>
       <div id="jsonPanel" style="display:none">
-        <div class="config-editor">
-          <textarea id="configEditor" placeholder="粘贴 V2Ray 配置文件 (JSON) ..." spellcheck="false"></textarea>
+        <div class="json-editor-wrap">
+          <div class="json-gutter" id="jsonGutter">1</div>
+          <textarea id="configEditor" placeholder="粘贴 V2Ray 配置文件 (JSON) ..." spellcheck="false" wrap="off"></textarea>
         </div>
       </div>
     </div>
@@ -72,17 +131,39 @@
   <div class="card">
     <div class="card-header">
       <h2>快速模板</h2>
+      <span class="hint">选择模板快速生成配置，再修改服务器信息</span>
     </div>
     <div class="card-body">
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-outline btn-sm" onclick="loadTemplate('socks-client')" style="border-color:#dbeafe;color:#1d4ed8">🧦 SOCKS5 + VMess</button>
-        <button class="btn btn-outline btn-sm" onclick="loadTemplate('http-client')" style="border-color:#fef3c7;color:#b45309">🌐 HTTP + VMess</button>
-        <button class="btn btn-outline btn-sm" onclick="loadTemplate('vless-reality')" style="border-color:#fce7f3;color:#be185d">🔒 VLESS + Reality</button>
-        <button class="btn btn-outline btn-sm" onclick="loadTemplate('shadowsocks')" style="border-color:#d1fae5;color:#047857">⚡ Shadowsocks</button>
+      <div class="templates-grid">
+        <button class="template-card" onclick="loadTemplate('socks-client')">
+          <div class="template-icon blue">🧦</div>
+          <div class="template-body">
+            <div class="template-title">SOCKS5 + VMess</div>
+            <div class="template-desc">最常用的客户端方案，WS+TLS 传输</div>
+          </div>
+        </button>
+        <button class="template-card" onclick="loadTemplate('http-client')">
+          <div class="template-icon amber">🌐</div>
+          <div class="template-body">
+            <div class="template-title">HTTP + VMess</div>
+            <div class="template-desc">HTTP 代理入口，适合命令行工具</div>
+          </div>
+        </button>
+        <button class="template-card" onclick="loadTemplate('vless-reality')">
+          <div class="template-icon pink">🔒</div>
+          <div class="template-body">
+            <div class="template-title">VLESS + Reality</div>
+            <div class="template-desc">现代推荐方案，无需证书抗检测</div>
+          </div>
+        </button>
+        <button class="template-card" onclick="loadTemplate('shadowsocks')">
+          <div class="template-icon green">⚡</div>
+          <div class="template-body">
+            <div class="template-title">Shadowsocks</div>
+            <div class="template-desc">轻量高速，AES-256-GCM 加密</div>
+          </div>
+        </button>
       </div>
-      <p style="margin-top:12px;font-size:13px;color:var(--text-muted);line-height:1.5">
-        选择一个模板快速生成配置文件，然后根据你的服务器信息修改出站配置。
-      </p>
     </div>
   </div>
 </div>
