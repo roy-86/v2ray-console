@@ -537,9 +537,16 @@ function buildInboundAdvanced(ib, i) {
   let h = '<div class="sub-section-title">Sniffing <span class="hint">(流量嗅探)</span></div>';
   h += '<div class="form-row">';
   h += '<label class="form-checkbox"><input type="checkbox" data-path="inbounds.'+i+'.sniffing.enabled"'+(sniff.enabled?' checked':'')+'> 启用</label>';
-  h += '<div class="form-group"><label>覆盖目标</label><select class="form-select" data-path="inbounds.'+i+'.sniffing.destOverride" multiple>';
-  ['http','tls'].forEach(v => { h += '<option value="'+v+'"'+(sniff.destOverride&&sniff.destOverride.includes(v)?' selected':'')+'>'+v+'</option>'; });
-  h += '</select></div>';
+  h += '</div><div class="form-row" style="margin-top:8px;align-items:flex-end">';
+  h += '<div class="form-group" style="flex:1"><label>覆盖目标</label><div class="dest-chips">';
+  const destOpts = ['http','tls','quic'];
+  const selected = Array.isArray(sniff.destOverride) ? sniff.destOverride : [];
+  const labels = { http:'HTTP', tls:'TLS', quic:'QUIC' };
+  destOpts.forEach(v => {
+    const chk = selected.includes(v) ? ' checked' : '';
+    h += '<label class="dest-chip"><input type="checkbox" data-path-array="inbounds.'+i+'.sniffing.destOverride" value="'+v+'"'+chk+'><span>'+labels[v]+'</span></label>';
+  });
+  h += '</div></div>';
   h += '</div>';
   return h;
 }
@@ -823,14 +830,14 @@ function buildSecuritySettings(ob, i, sec) {
       h += '<div class="form-row">';
       h += '<div class="form-group"><label>Server Name (SNI)</label><input class="form-input" data-path="outbounds.'+i+'.streamSettings.tlsSettings.serverName" value="'+esc(tls.serverName||'')+'" style="width:200px" placeholder="your-domain.com"></div>';
       h += '<label class="form-checkbox"><input type="checkbox" data-path="outbounds.'+i+'.streamSettings.tlsSettings.allowInsecure"'+(tls.allowInsecure?' checked':'')+'> 允许不安全证书</label>';
-      h += '</div><div class="form-row">';
-      h += '<div class="form-group"><label>ALPN</label><input class="form-input" data-path="outbounds.'+i+'.streamSettings.tlsSettings.alpn" value="'+esc((tls.alpn||[]).join(', '))+'" style="width:200px" placeholder="h2, http/1.1"></div>';
+      h += '</div><div class="form-row" style="align-items:flex-end">';
+      h += '<div class="form-group"><label>ALPN</label><input class="form-input" data-path="outbounds.'+i+'.streamSettings.tlsSettings.alpn" value="'+esc((tls.alpn||[]).join(', '))+'" style="width:200px" placeholder="h2, http/1.1"><div class="hint">可选</div></div>';
       h += '<div class="form-group"><label>最低 TLS</label><select class="form-select" data-path="outbounds.'+i+'.streamSettings.tlsSettings.minVersion">';
       ['1.0','1.1','1.2','1.3'].forEach(v => { h += '<option value="'+v+'"'+(tls.minVersion===v?' selected':'')+'>'+v+'</option>'; });
-      h += '</select> <span class="hint">默认: 1.2</span></div>';
+      h += '</select><div class="hint">默认: 1.2</div></div>';
       h += '<div class="form-group"><label>最高 TLS</label><select class="form-select" data-path="outbounds.'+i+'.streamSettings.tlsSettings.maxVersion">';
-      ['1.0','1.1','1.2','1.3'].forEach(v => { h += '<option value="'+v+'"'+(tls.maxVersion===v?' selected':'')+'>'+v+'</option>'; });
-      h += '</select> <span class="hint">默认: 1.3</span></div>';
+      ['1.0','1.1','1.2','1.3'].forEach(v => { h += '<option value="'+v+'"'+(tls.maxVersion===v?' selected':'')+'">'+v+'</option>'; });
+      h += '</select><div class="hint">默认: 1.3</div></div>';
       h += '</div><div class="form-row">';
       h += '<div class="form-group"><label>Cert 文件</label><input class="form-input" data-path="outbounds.'+i+'.streamSettings.tlsSettings.certFile" value="'+esc(tls.certFile||'')+'" style="width:200px" placeholder="服务端必填"></div>';
       h += '<div class="form-group"><label>Key 文件</label><input class="form-input" data-path="outbounds.'+i+'.streamSettings.tlsSettings.keyFile" value="'+esc(tls.keyFile||'')+'" style="width:200px" placeholder="服务端必填"></div>';
@@ -967,6 +974,20 @@ function toggleCollapsible(el) {
   el.classList.toggle('open');
   el.nextElementSibling.classList.toggle('open');
 }
+
+function toggleMultiSelect(triggerEl) {
+  const ms = triggerEl.closest('.multi-select');
+  if (!ms) return;
+  // Close other open multi-selects
+  document.querySelectorAll('.multi-select.open').forEach(el => { if (el !== ms) el.classList.remove('open'); });
+  ms.classList.toggle('open');
+}
+// Close multi-select when clicking outside
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.multi-select')) {
+    document.querySelectorAll('.multi-select.open').forEach(el => el.classList.remove('open'));
+  }
+});
 
 // ─── Add / Remove ──────────────────────────────
 function addInbound() {
