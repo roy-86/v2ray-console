@@ -745,9 +745,9 @@ function buildStreamSettings(ob, i) {
   const sock = ss.sockopt || {};
   h += '<div class="collapsible" style="margin-top:4px">';
   h += '<div class="collapsible-header" onclick="toggleCollapsible(this)"><span class="arrow">▶</span> Sockopt <span class="hint">(可省略)</span></div>';
-  h += '<div class="collapsible-body"><div class="form-row">';
-  h += '<div class="form-group"><label>Mark</label><input class="form-input" type="number" data-path="outbounds.'+i+'.streamSettings.sockopt.mark" value="'+(sock.mark||0)+'" style="width:80px"> <span class="hint">默认: 0</span></div>';
-  h += '<label class="form-checkbox"><input type="checkbox" data-path="outbounds.'+i+'.streamSettings.sockopt.tcpFastOpen"'+(sock.tcpFastOpen?' checked':'')+'> TCP Fast Open</label>';
+  h += '<div class="collapsible-body"><div class="form-row" style="align-items:flex-end">';
+  h += '<div class="form-group"><label>Mark</label><input class="form-input field-sm" type="number" data-path="outbounds.'+i+'.streamSettings.sockopt.mark" value="'+(sock.mark||0)+'"><div class="hint">默认: 0</div></div>';
+  h += '<div class="form-group" style="padding-bottom:1px"><label>&nbsp;</label><label class="form-checkbox"><input type="checkbox" data-path="outbounds.'+i+'.streamSettings.sockopt.tcpFastOpen"'+(sock.tcpFastOpen?' checked':'')+'> TCP Fast Open</label><div class="hint">&nbsp;</div></div>';
   h += '</div></div></div>';
   return h;
 }
@@ -865,9 +865,9 @@ function buildSecuritySettings(ob, i, sec) {
 
 function buildMuxSettings(ob, i) {
   const mux = ob.mux || {};
-  let h = '<div class="form-row">';
-  h += '<label class="form-checkbox"><input type="checkbox" data-path="outbounds.'+i+'.mux.enabled"'+(mux.enabled?' checked':'')+'> 启用 Mux</label>';
-  h += '<div class="form-group"><label>并发数</label><input class="form-input" type="number" data-path="outbounds.'+i+'.mux.concurrency" value="'+(mux.concurrency||8)+'" style="width:80px"> <span class="hint">默认: 8</span></div>';
+  let h = '<div class="form-row" style="align-items:flex-end">';
+  h += '<div class="form-group" style="padding-bottom:1px"><label>&nbsp;</label><label class="form-checkbox"><input type="checkbox" data-path="outbounds.'+i+'.mux.enabled"'+(mux.enabled?' checked':'')+'> 启用 Mux</label><div class="hint">&nbsp;</div></div>';
+  h += '<div class="form-group"><label>并发数</label><input class="form-input field-sm" type="number" data-path="outbounds.'+i+'.mux.concurrency" value="'+(mux.concurrency||8)+'"><div class="hint">默认: 8</div></div>';
   h += '</div>';
   return h;
 }

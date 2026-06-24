@@ -695,6 +695,10 @@ body {
 .form-select { min-width: 110px; cursor: pointer; }
 .form-input::placeholder { color: var(--text-faint); }
 
+/* Field width modifiers */
+.field-auto { flex: 1 !important; min-width: 120px; }
+.field-sm { width: 70px !important; text-align: center; }
+
 /* —— User Row (VMess/VLESS users) —— */
 .user-row {
   align-items: flex-end;
