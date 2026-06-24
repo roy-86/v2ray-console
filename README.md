@@ -24,13 +24,22 @@ curl -sL -o geoip.dat "https://github.com/v2fly/geoip/releases/latest/download/g
 curl -sL -o geosite.dat "https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat"
 ```
 
+### 初始化配置
+
+```bash
+# 从示例配置文件创建实际配置（config.json 已 gitignore，需自行创建）
+cp config.example.json config.json
+```
+
+然后用编辑器打开 `config.json`，将 `your-server.com`、`your-uuid-here` 等占位符替换为你的实际服务器信息。
+
 ### 编译运行
 
 ```bash
 # 编译
 go build -o v2ray-console .
 
-# 启动（使用默认配置）
+# 启动（默认使用 config.json）
 ./v2ray-console -config config.json -port 8080
 ```
 
@@ -1199,13 +1208,15 @@ curl -X POST http://localhost:8080/api/restart
 ├── api/
 │   └── handlers.go      # REST API 路由和处理器
 ├── web/
-│   └── index.html       # Web 管理界面（纯 HTML/CSS/JS）
+│   ├── index.html       # Web 管理界面（HTML 结构）
+│   ├── styles.css       # UI 样式（含浅色/深色主题）
+│   └── app.js           # 前端交互逻辑
 ├── icons/
 │   ├── favicon-16x16.png
 │   ├── favicon-32x32.png
 │   └── favicon-48x48.png  # 网页 favicon 多尺寸图标
-├── config.json          # 示例配置文件
-├── config.prod.json     # 生产配置文件
+├── config.example.json  # 脱敏后的示例配置文件
+├── config.json          # 实际配置文件（gitignore 不提交）
 ├── geoip.dat            # IP 地理位置数据库（需自行下载）
 ├── geosite.dat          # 域名分类数据库（需自行下载）
 └── go.mod               # Go 模块定义

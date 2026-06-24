@@ -1,0 +1,114 @@
+{
+  "dns": {},
+  "inbounds": [
+    {
+      "listen": "127.0.0.1",
+      "port": 1080,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": false
+      }
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 1087,
+      "protocol": "http",
+      "settings": {
+        "timeout": 360
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "mux": {
+        "concurrency": 8,
+        "enabled": false
+      },
+      "protocol": "vmess",
+      "settings": {
+        "vnext": [
+          {
+            "address": "your-server.com",
+            "port": 443,
+            "users": [
+              {
+                "alterId": 0,
+                "id": "your-uuid-here",
+                "level": 1,
+                "security": "auto"
+              }
+            ]
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "ws",
+        "security": "tls",
+        "tlsSettings": {
+          "allowInsecure": false,
+          "serverName": "your-server.com"
+        },
+        "wsSettings": {
+          "headers": {
+            "host": "your-server.com"
+          },
+          "path": "/ws"
+        }
+      },
+      "tag": "proxy"
+    },
+    {
+      "protocol": "freedom",
+      "settings": {
+        "domainStrategy": "UseIP",
+        "redirect": "",
+        "userLevel": 0
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "none",
+        "tlsSettings": {
+          "allowInsecure": false,
+          "serverName": ""
+        },
+        "wsSettings": {
+          "headers": {
+            "host": ""
+          },
+          "path": "/"
+        }
+      },
+      "tag": "direct"
+    }
+  ],
+  "routing": {
+    "settings": {
+      "domainStrategy": "AsIs",
+      "rules": [
+        {
+          "ip": [
+            "geoip:private"
+          ],
+          "outboundTag": "direct",
+          "type": "field"
+        },
+        {
+          "domain": [
+            "localhost",
+            "local"
+          ],
+          "outboundTag": "direct",
+          "type": "field"
+        },
+        {
+          "network": "udp",
+          "outboundTag": "direct",
+          "port": 53,
+          "type": "field"
+        }
+      ]
+    }
+  },
+  "transport": {}
+}
