@@ -313,7 +313,7 @@ function setNested(obj, path, value) {
   }
   const last = keys[keys.length - 1];
   // Comma-separated → array fields
-  const arrayKeys = ['ip','domain','alpn','inboundTag','protocol','selector','destOverride','host'];
+  const arrayKeys = ['ip','domain','alpn','inboundTag','selector','destOverride','host'];
   if (arrayKeys.includes(last) && typeof value === 'string') {
     // special: `host` under `httpSettings` is array; under `wsSettings.headers` is string
     if (last === 'host' && !path.includes('httpSettings')) {
@@ -432,6 +432,18 @@ function buildInboundSettingsByProtocol(ib, i, proto) {
       h += '<option value="noauth"'+(s.auth==='noauth'?' selected':'')+'>无认证 <span class="hint">(默认)</span></option>';
       h += '<option value="password"'+(s.auth==='password'?' selected':'')+'>密码</option></select></div>';
       h += '<label class="form-checkbox"><input type="checkbox" data-path="inbounds.'+i+'.settings.udp"'+(s.udp?' checked':'')+'> UDP 转发</label></div>';
+      if (s.auth === 'password') {
+        const accounts = s.accounts || [{user:'', pass:''}];
+        h += '<div class="sub-section-title" style="margin:8px 0 4px">账号列表</div>';
+        accounts.forEach((a, ai) => {
+          h += '<div class="form-row user-row">';
+          h += '<div class="form-group"><label>用户名</label><input class="form-input" data-path="inbounds.'+i+'.settings.accounts.'+ai+'.user" value="'+esc(a.user||'')+'" style="width:150px"></div>';
+          h += '<div class="form-group"><label>密码</label><input class="form-input" data-path="inbounds.'+i+'.settings.accounts.'+ai+'.pass" value="'+esc(a.pass||'')+'" style="width:150px"></div>';
+          h += ai > 0 ? '<button class="btn-remove" data-action="remove-socks-account" data-ib-index="'+i+'" data-a-index="'+ai+'">✕</button>' : '';
+          h += '</div>';
+        });
+        h += '<button class="btn btn-outline btn-xs" type="button" onclick="addSocksAccount('+i+')" style="margin-top:4px">+ 添加账号</button>';
+      }
       break;
     }
     case 'http': {
@@ -1048,6 +1060,18 @@ function removeInboundClient(ibIdx, cIdx) {
   clients.splice(cIdx, 1);
   reloadSection('section-inbounds', buildInboundsSection());
 }
+// SOCKS accounts
+function addSocksAccount(ibIdx) {
+  if (!state.inbounds[ibIdx].settings.accounts) state.inbounds[ibIdx].settings.accounts = [];
+  state.inbounds[ibIdx].settings.accounts.push({ user: '', pass: '' });
+  reloadSection('section-inbounds', buildInboundsSection());
+}
+function removeSocksAccount(ibIdx, aIdx) {
+  const accounts = state.inbounds[ibIdx].settings.accounts;
+  if (!accounts || accounts.length <= 0) return;
+  accounts.splice(aIdx, 1);
+  reloadSection('section-inbounds', buildInboundsSection());
+}
 // Fallbacks
 function addFallback(ibIdx) {
   if (!state.inbounds[ibIdx].settings.fallbacks) state.inbounds[ibIdx].settings.fallbacks = [];
@@ -1314,6 +1338,14 @@ document.addEventListener('change', function(e) {
       const ssDiv = document.getElementById('security-settings-'+idx);
       if (ssDiv) ssDiv.innerHTML = buildSecuritySettings(state.outbounds[idx], idx, value);
     }
+    // SOCKS auth change → re-render settings to show/hide accounts
+    if (path.match(/^inbounds\.\d+\.settings\.auth$/)) {
+      const idx = parseInt(path.split('.')[1]);
+      const ib = state.inbounds[idx];
+      if (ib && ib.protocol === 'socks') {
+        reloadInboundSettings(idx);
+      }
+    }
     // Outbound tag change → update routing dropdowns
     if (path.match(/^outbounds\.\d+\.tag$/)) {
       reloadSection('section-routing', buildRoutingSection());
@@ -1334,6 +1366,7 @@ document.addEventListener('click', function(e) {
   const fbIdx = parseInt(btn.dataset.fbIndex);
   const svIdx = parseInt(btn.dataset.svIndex);
   const bIdx = parseInt(btn.dataset.bIndex);
+  const aIdx = parseInt(btn.dataset.aIndex);
 
   e.preventDefault();
   switch(action) {
@@ -1356,6 +1389,8 @@ document.addEventListener('click', function(e) {
     case 'remove-ss-server': removeSSServer(obIdx, svIdx); break;
     case 'add-balancer': addBalancer(); break;
     case 'remove-balancer': removeBalancer(bIdx); break;
+    case 'add-socks-account': addSocksAccount(ibIdx); break;
+    case 'remove-socks-account': removeSocksAccount(ibIdx, aIdx); break;
     case 'add-rule': addRule(); break;
     case 'remove-rule': removeRule(idx); break;
   }
