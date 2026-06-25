@@ -1295,8 +1295,12 @@ function loadTemplate(name) {
   };
   const t = templates[name];
   if (!t) return;
+  // 先切换到表单标签页（会读取编辑器的内容，所以先清空避免覆盖模板数据）
+  if (currentTab !== 'form') {
+    document.getElementById('configEditor').value = '';
+    switchTab('form');
+  }
   populateState(t);
-  if (currentTab !== 'form') switchTab('form');
   buildForm();
   showToast('模板已加载，请修改服务器信息');
 }
