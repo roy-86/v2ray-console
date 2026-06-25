@@ -52,6 +52,194 @@ go build -o v2ray-console .
 | `-config` | `config.json` | V2Ray 配置文件路径 |
 | `-port` | `8080` | 管理面板监听端口 |
 
+## 开机自启
+
+### macOS
+
+以下按推荐程度排序，列举几种主流的开机自启方式。
+
+---
+
+#### 1. LaunchAgent（推荐）
+
+最标准的方式，通过 plist 配置文件注册为系统服务。将以下文件保存到 `~/Library/LaunchAgents/com.v2ray.console.plist`：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.v2ray.console</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/你的用户名/v2ray-console/v2ray-console</string>
+        <string>-config</string>
+        <string>/Users/你的用户名/v2ray-console/config.json</string>
+        <string>-port</string>
+        <string>8080</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/你的用户名/v2ray-console</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/你的用户名/v2ray-console/stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/你的用户名/v2ray-console/stderr.log</string>
+</dict>
+</plist>
+```
+
+加载生效：
+
+```bash
+# 加载（注册服务）
+launchctl load ~/Library/LaunchAgents/com.v2ray.console.plist
+
+# 手动启停
+launchctl start com.v2ray.console
+launchctl stop com.v2ray.console
+
+# 查看状态
+launchctl list com.v2ray.console
+
+# 卸载自启
+# launchctl unload ~/Library/LaunchAgents/com.v2ray.console.plist
+```
+
+**plist 存放位置的区别：**
+
+| 位置 | 用户上下文 | 适用场景 |
+|------|-----------|---------|
+| `~/Library/LaunchAgents/` | 当前用户登录后启动 | **个人程序（最常用）** |
+| `/Library/LaunchAgents/` | 任意用户登录后启动 | 所有用户共享 |
+| `/Library/LaunchDaemons/` | 系统启动时（root） | 系统级服务 |
+
+**常用 key 说明：**
+
+| Key | 说明 |
+|-----|------|
+| `RunAtLoad` | 加载时立即运行 |
+| `KeepAlive` | `true` 表示崩溃/退出后自动重启 |
+| `WorkingDirectory` | 指定工作目录（需要包含 `geoip.dat` / `geosite.dat`） |
+| `StandardOutPath` / `StandardErrorPath` | 日志输出路径 |
+| `EnvironmentVariables` | 设置环境变量（如 `{"PATH": "/usr/local/bin:..."}`） |
+
+> **注意**：`WorkingDirectory` 必须设置为包含 `geoip.dat` 和 `geosite.dat` 的目录，否则路由规则会加载失败。
+
+---
+
+#### 2. 系统设置 → 登录项（GUI 方式）
+
+**系统设置 → 通用 → 登录项与扩展**，点 `+` 添加 `v2ray-console`。
+
+适合一次性配置，图形化操作。本质也是往 `~/Library/LaunchAgents/` 写 plist，系统帮你管理。
+
+---
+
+#### 3. 用 `sfltool` 命令行添加登录项
+
+macOS 13+ 可用以下命令操作登录项：
+
+```bash
+sfltool add-item com.apple.LSLoginItem /path/to/v2ray-console/v2ray-console
+```
+
+---
+
+#### 4. Shell 配置注入（轻量方案）
+
+在 `~/.zshrc`（或 `~/.bash_profile`）末尾添加：
+
+```bash
+# 后台运行 v2ray-console（仅在打开终端时触发）
+(pgrep -x v2ray-console > /dev/null || ~/v2ray-console/v2ray-console -config ~/v2ray-console/config.json -port 8080 &) > /dev/null 2>&1
+```
+
+> **限制**：只在打开终端时触发，不是真正的开机自启。适合开发阶段临时使用。
+
+### Linux（使用 systemd）
+
+创建 systemd 用户服务（推荐，无需 root）：
+
+```bash
+# 假设 v2ray-console 在 ~/v2ray-console/ 目录
+mkdir -p ~/.config/systemd/user
+
+cat > ~/.config/systemd/user/v2ray-console.service << 'EOF'
+[Unit]
+Description=V2Ray Console Management Panel
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/v2ray-console/v2ray-console -config %h/v2ray-console/config.json -port 8080
+WorkingDirectory=%h/v2ray-console
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:%h/v2ray-console/stdout.log
+StandardError=append:%h/v2ray-console/stderr.log
+
+[Install]
+WantedBy=default.target
+EOF
+
+# 重新加载 systemd 用户配置
+systemctl --user daemon-reload
+
+# 启用开机自启
+systemctl --user enable v2ray-console
+
+# 立即启动
+systemctl --user start v2ray-console
+
+# 查看状态
+systemctl --user status v2ray-console
+
+# 查看日志
+journalctl --user -u v2ray-console -f
+
+# 卸载自启
+# systemctl --user stop v2ray-console
+# systemctl --user disable v2ray-console
+# rm ~/.config/systemd/user/v2ray-console.service
+```
+
+如果希望作为系统服务（所有用户可用，需要 root）：
+
+```bash
+sudo cat > /etc/systemd/system/v2ray-console.service << 'EOF'
+[Unit]
+Description=V2Ray Console Management Panel
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/v2ray-console/v2ray-console -config /opt/v2ray-console/config.json -port 8080
+WorkingDirectory=/opt/v2ray-console
+Restart=on-failure
+RestartSec=5
+User=nobody
+StandardOutput=append:/opt/v2ray-console/stdout.log
+StandardError=append:/opt/v2ray-console/stderr.log
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable v2ray-console
+sudo systemctl start v2ray-console
+```
+
+> **路径说明**：`%h` 在 systemd 用户服务中自动展开为用户的家目录路径。如果 `v2ray-console` 安装在其他位置，请相应调整 `ExecStart` 和 `WorkingDirectory`。
+
+---
+
 ## 配置指南
 
 配置文件使用 **V2Ray v4 JSON 格式**（与 Docker 镜像 `v2fly/v2fly-core` 兼容）。下面是完整的配置能力参考。
