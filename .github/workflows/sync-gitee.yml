@@ -1,0 +1,25 @@
+name: Sync Gitee to GitHub
+
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # 每6小时
+  workflow_dispatch:         # 手动触发
+
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+
+      - name: Sync from Gitee
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}      
+        run: |
+          git remote add gitee https://oauth2:${GITEE_TOKEN}@gitee.com/luozp/v2ray-console.git
+          git fetch gitee
+          git push origin refs/remotes/gitee/*:refs/heads/* --force
