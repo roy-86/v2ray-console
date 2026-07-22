@@ -146,6 +146,10 @@ func withMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		// 禁止缓存静态文件（确保前端修改即时生效）
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+
 		// 日志
 		log.Printf("[%s] %s %s", r.Method, r.URL.Path, r.RemoteAddr)
 

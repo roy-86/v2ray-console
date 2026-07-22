@@ -38,7 +38,7 @@ async function checkStatus() {
   document.getElementById('versionText').textContent = data.version || '—';
 
   if (data.running) {
-    if (!_runningSince) _runningSince = Date.now();
+    _runningSince = data.started_at || Date.now();
     setStatusState('running', '运行中');
     document.getElementById('btnStart').disabled = true;
     document.getElementById('btnStop').disabled = false;

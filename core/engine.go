@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	v2rayCore "github.com/v2fly/v2ray-core/v5"
 
@@ -23,6 +24,7 @@ type Engine struct {
 	instance   *v2rayCore.Instance
 	cancel     context.CancelFunc
 	running    bool
+	startedAt  time.Time
 	configPath string
 }
 
@@ -35,8 +37,9 @@ func NewEngine(configPath string) *Engine {
 
 // Status 返回当前运行状态
 type Status struct {
-	Running bool   `json:"running"`
-	Version string `json:"version"`
+	Running   bool   `json:"running"`
+	Version   string `json:"version"`
+	StartedAt int64  `json:"started_at"`
 }
 
 // GetStatus 获取引擎状态
@@ -48,8 +51,9 @@ func (e *Engine) GetStatus() Status {
 		version = v2rayCore.Version()
 	}
 	return Status{
-		Running: e.running,
-		Version: version,
+		Running:   e.running,
+		Version:   version,
+		StartedAt: e.startedAt.UnixMilli(),
 	}
 }
 
@@ -102,6 +106,7 @@ func (e *Engine) Start() error {
 
 	e.instance = instance
 	e.running = true
+	e.startedAt = time.Now()
 
 	log.Printf("v2ray-core 已启动 (版本: %s)", v2rayCore.Version())
 	return nil
@@ -126,6 +131,7 @@ func (e *Engine) Stop() error {
 
 	e.instance = nil
 	e.running = false
+	e.startedAt = time.Time{}
 
 	log.Println("v2ray-core 已停止")
 	return nil
