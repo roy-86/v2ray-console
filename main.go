@@ -10,13 +10,14 @@ import (
 )
 
 func main() {
+	host := flag.String("host", "127.0.0.1", "管理面板监听地址")
 	port := flag.String("port", "8080", "管理面板监听端口")
 	configPath := flag.String("config", "config.json", "V2Ray 配置文件路径")
 	flag.Parse()
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	log.Println("=== V2Ray Console ===")
-	log.Printf("管理面板: http://localhost:%s", *port)
+	log.Printf("管理面板: http://%s:%s", *host, *port)
 	log.Printf("配置文件: %s", *configPath)
 
 	// 初始化引擎
@@ -36,12 +37,12 @@ func main() {
 
 	// 启动 HTTP 服务
 	server := &http.Server{
-		Addr:    ":" + *port,
+		Addr:    *host + ":" + *port,
 		Handler: mux,
 	}
 
 	go func() {
-		log.Printf("HTTP 服务已启动，监听 :%s", *port)
+		log.Printf("HTTP 服务已启动，监听 %s:%s", *host, *port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("HTTP 服务启动失败: %v", err)
 		}

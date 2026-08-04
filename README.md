@@ -39,8 +39,11 @@ cp config.example.json config.json
 # 编译
 go build -o v2ray-console .
 
-# 启动（默认使用 config.json）
+# 启动（默认使用 config.json，仅本机可访问）
 ./v2ray-console -config config.json -port 8080
+
+# 指定监听地址（例如允许局域网访问）
+./v2ray-console -host 0.0.0.0 -port 8080
 ```
 
 打开浏览器访问 `http://localhost:8080`。
@@ -50,6 +53,7 @@ go build -o v2ray-console .
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | `-config` | `config.json` | V2Ray 配置文件路径 |
+| `-host` | `127.0.0.1` | 管理面板监听地址（仅本机） |
 | `-port` | `8080` | 管理面板监听端口 |
 
 ## 开机自启
