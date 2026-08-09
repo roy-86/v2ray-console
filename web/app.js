@@ -129,7 +129,7 @@ const DEFAULTS = {
   outboundVmess: {
     protocol: 'vmess', tag: 'proxy',
     settings: { vnext: [{ address: '', port: 443, users: [{ id: '', alterId: 0, security: 'auto', level: 1 }] }] },
-    streamSettings: { network: 'ws', security: 'tls', tlsSettings: { serverName: '', allowInsecure: false, alpn: [], minVersion: '1.2', maxVersion: '1.3' }, wsSettings: { path: '/', headers: { host: '' } } },
+    streamSettings: { network: 'ws', security: 'tls', tlsSettings: { serverName: '', allowInsecure: false, alpn: [] }, wsSettings: { path: '/', headers: { host: '' } } },
     mux: { enabled: false, concurrency: 8 }
   },
   outboundVless: {
@@ -271,8 +271,6 @@ function populateState(parsed) {
       if (tls.serverName === undefined) tls.serverName = '';
       if (tls.allowInsecure === undefined) tls.allowInsecure = false;
       if (tls.alpn === undefined) tls.alpn = [];
-      if (tls.minVersion === undefined) tls.minVersion = '1.2';
-      if (tls.maxVersion === undefined) tls.maxVersion = '1.3';
       if (tls.certFile === undefined) tls.certFile = '';
       if (tls.keyFile === undefined) tls.keyFile = '';
       if (!ss.kcpSettings) ss.kcpSettings = { mtu: 1350, tti: 20, uplinkCapacity: 5, downlinkCapacity: 20, congestion: false, readBuffer: 2, writeBuffer: 2, header: { type: 'none' }, seed: '' };
@@ -837,19 +835,13 @@ function buildSecuritySettings(ob, i, sec) {
   let h = '';
   switch (sec) {
     case 'tls': {
-      const tls = ss.tlsSettings || { serverName:'', allowInsecure:false, alpn:[], minVersion:'1.2', maxVersion:'1.3', certFile:'', keyFile:'' };
+      const tls = ss.tlsSettings || { serverName:'', allowInsecure:false, alpn:[], certFile:'', keyFile:'' };
       h += '<div class="sub-section-title" style="margin-top:8px">TLS 设置 <span class="hint">(默认值可省略)</span></div>';
       h += '<div class="form-row">';
       h += '<div class="form-group"><label>Server Name (SNI)</label><input class="form-input" data-path="outbounds.'+i+'.streamSettings.tlsSettings.serverName" value="'+esc(tls.serverName||'')+'" style="width:200px" placeholder="your-domain.com"></div>';
       h += '<label class="form-checkbox"><input type="checkbox" data-path="outbounds.'+i+'.streamSettings.tlsSettings.allowInsecure"'+(tls.allowInsecure?' checked':'')+'> 允许不安全证书</label>';
-      h += '</div><div class="form-row" style="align-items:flex-end">';
+      h += '</div><div class="form-row">';
       h += '<div class="form-group"><label>ALPN</label><input class="form-input" data-path="outbounds.'+i+'.streamSettings.tlsSettings.alpn" value="'+esc((tls.alpn||[]).join(', '))+'" style="width:200px" placeholder="h2, http/1.1"><div class="hint">可选</div></div>';
-      h += '<div class="form-group"><label>最低 TLS</label><select class="form-select" data-path="outbounds.'+i+'.streamSettings.tlsSettings.minVersion">';
-      ['1.0','1.1','1.2','1.3'].forEach(v => { h += '<option value="'+v+'"'+(tls.minVersion===v?' selected':'')+'>'+v+'</option>'; });
-      h += '</select><div class="hint">默认: 1.2</div></div>';
-      h += '<div class="form-group"><label>最高 TLS</label><select class="form-select" data-path="outbounds.'+i+'.streamSettings.tlsSettings.maxVersion">';
-      ['1.0','1.1','1.2','1.3'].forEach(v => { h += '<option value="'+v+'"'+(tls.maxVersion===v?' selected':'')+'">'+v+'</option>'; });
-      h += '</select><div class="hint">默认: 1.3</div></div>';
       h += '</div><div class="form-row">';
       h += '<div class="form-group"><label>Cert 文件</label><input class="form-input" data-path="outbounds.'+i+'.streamSettings.tlsSettings.certFile" value="'+esc(tls.certFile||'')+'" style="width:200px" placeholder="服务端必填"></div>';
       h += '<div class="form-group"><label>Key 文件</label><input class="form-input" data-path="outbounds.'+i+'.streamSettings.tlsSettings.keyFile" value="'+esc(tls.keyFile||'')+'" style="width:200px" placeholder="服务端必填"></div>';
