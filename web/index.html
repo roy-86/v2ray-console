@@ -62,29 +62,29 @@
     </div>
   </section>
 
-  <!-- Overview Dashboard -->
-  <section class="overview" id="overview">
-    <div class="overview-cell">
-      <div class="overview-cell-label">📥 入站</div>
-      <div class="overview-cell-value" id="ovInbounds">0</div>
-      <div class="overview-cell-detail" id="ovInboundsDetail">—</div>
-    </div>
-    <div class="overview-cell">
-      <div class="overview-cell-label">📤 出站</div>
-      <div class="overview-cell-value" id="ovOutbounds">0</div>
-      <div class="overview-cell-detail" id="ovOutboundsDetail">—</div>
-    </div>
-    <div class="overview-cell">
-      <div class="overview-cell-label">🔀 路由规则</div>
-      <div class="overview-cell-value" id="ovRules">0</div>
-      <div class="overview-cell-detail" id="ovRulesDetail">条规则</div>
-    </div>
-    <div class="overview-cell">
-      <div class="overview-cell-label">📡 监听端口</div>
-      <div class="overview-cell-value" id="ovPorts">0</div>
-      <div class="overview-cell-detail" id="ovPortsDetail">个端口</div>
-    </div>
-  </section>
+ <!-- Overview Dashboard -->
+ <section class="overview" id="overview">
+   <div class="overview-cell">
+      <div class="overview-cell-top"><span class="overview-cell-icon">📥</span><span class="overview-cell-label">入站</span></div>
+     <div class="overview-cell-value" id="ovInbounds">0</div>
+     <div class="overview-cell-detail" id="ovInboundsDetail">—</div>
+   </div>
+   <div class="overview-cell">
+      <div class="overview-cell-top"><span class="overview-cell-icon">📤</span><span class="overview-cell-label">出站</span></div>
+     <div class="overview-cell-value" id="ovOutbounds">0</div>
+     <div class="overview-cell-detail" id="ovOutboundsDetail">—</div>
+   </div>
+   <div class="overview-cell">
+      <div class="overview-cell-top"><span class="overview-cell-icon">🔀</span><span class="overview-cell-label">路由规则</span></div>
+     <div class="overview-cell-value" id="ovRules">0</div>
+     <div class="overview-cell-detail" id="ovRulesDetail">条规则</div>
+   </div>
+   <div class="overview-cell">
+      <div class="overview-cell-top"><span class="overview-cell-icon">📡</span><span class="overview-cell-label">监听端口</span></div>
+     <div class="overview-cell-value" id="ovPorts">0</div>
+     <div class="overview-cell-detail" id="ovPortsDetail">个端口</div>
+   </div>
+ </section>
 
   <!-- Config Card -->
   <div class="card">
@@ -102,7 +102,9 @@
         <button class="btn btn-ghost btn-xs" id="importBtn" onclick="document.getElementById('importFile').click()" title="从文件导入">⬆ 导入</button>
         <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importConfig(event)">
         <button class="btn btn-ghost btn-xs" id="formatBtn" onclick="formatConfig()" style="display:none">⟳ 格式化</button>
-        <button class="btn btn-primary btn-sm" onclick="saveConfig()">💾 保存 <span class="kbd">⌘S</span></button>
+        <button class="btn btn-primary btn-sm" id="saveBtn" onclick="saveConfig()">
+          <span class="btn-spinner" aria-hidden="true"></span><span class="save-icon" aria-hidden="true">💾</span><span>保存</span> <span class="kbd">⌘S</span>
+        </button>
       </div>
     </div>
     <div class="card-body">
@@ -171,6 +173,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

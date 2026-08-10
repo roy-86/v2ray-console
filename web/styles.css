@@ -274,11 +274,35 @@ body {
 .status-hero.running::before { background: var(--success); }
 .status-hero.error::before { background: var(--danger); }
 
+.status-hero::after {
+  content: "";
+  position: absolute;
+  right: -80px;
+  top: -80px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, var(--text-faint), transparent 70%);
+  opacity: .08;
+  pointer-events: none;
+  transition: background var(--transition-slow), opacity var(--transition-slow);
+}
+.status-hero.running::after {
+  background: radial-gradient(circle at center, var(--success), transparent 68%);
+  opacity: .16;
+}
+.status-hero.error::after {
+  background: radial-gradient(circle at center, var(--danger), transparent 68%);
+  opacity: .18;
+}
+
 .status-hero-main {
   display: flex;
   align-items: center;
   gap: 18px;
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 .status-orb {
   width: 44px;
@@ -347,7 +371,7 @@ body {
 .status-meta strong { color: var(--text); font-weight: 600; }
 .status-meta .meta-sep { color: var(--text-faint); }
 
-.status-controls { display: flex; gap: 8px; flex-shrink: 0; }
+.status-controls { display: flex; gap: 8px; flex-shrink: 0; position: relative; z-index: 1; }
 
 /* ==========================================================================
    Overview Dashboard — 概览仪表盘
@@ -369,16 +393,38 @@ body {
   overflow: hidden;
 }
 .overview-cell:hover { border-color: var(--border); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.overview-cell-top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 10px;
+}
+.overview-cell-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.overview-cell:nth-child(1) .overview-cell-icon { background: var(--tag-socks-bg); }
+.overview-cell:nth-child(2) .overview-cell-icon { background: var(--tag-vmess-bg); }
+.overview-cell:nth-child(3) .overview-cell-icon { background: var(--tag-http-bg); }
+.overview-cell:nth-child(4) .overview-cell-icon { background: var(--tag-ss-bg); }
+.overview-cell:hover:nth-child(1) { box-shadow: var(--shadow-sm), 0 0 0 1px color-mix(in srgb, var(--tag-socks-fg) 22%, transparent); }
+.overview-cell:hover:nth-child(2) { box-shadow: var(--shadow-sm), 0 0 0 1px color-mix(in srgb, var(--tag-vmess-fg) 22%, transparent); }
+.overview-cell:hover:nth-child(3) { box-shadow: var(--shadow-sm), 0 0 0 1px color-mix(in srgb, var(--tag-http-fg) 22%, transparent); }
+.overview-cell:hover:nth-child(4) { box-shadow: var(--shadow-sm), 0 0 0 1px color-mix(in srgb, var(--tag-ss-fg) 22%, transparent); }
 .overview-cell-label {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .06em;
   color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
 }
 .overview-cell-value {
   font-size: 26px;
@@ -572,6 +618,49 @@ body {
   border-color: var(--border);
   color: var(--text-muted);
 }
+
+/* —— Save button: dirty + loading states —— */
+/* Dirty dot: hidden until config has unsaved changes */
+#saveBtn .btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: btn-spin .6s linear infinite;
+  display: none;
+}
+#saveBtn.loading .btn-spinner { display: inline-block; }
+#saveBtn.loading .save-icon { display: none; }
+#saveBtn.loading { opacity: 1; }
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+#saveBtn { transition: var(--transition), box-shadow .4s var(--ease-out); }
+/* Dirty indicator: a small pulsing dot in the top-right corner */
+#saveBtn.dirty::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fbbf24;
+  box-shadow: 0 0 0 2px var(--primary), 0 0 8px #fbbf24;
+  animation: dirty-pulse 1.8s var(--ease-in-out) infinite;
+}
+@keyframes dirty-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.25); opacity: .75; }
+}
+#saveBtn.dirty {
+  animation: dirty-glow 2.4s var(--ease-in-out) infinite;
+}
+@keyframes dirty-glow {
+  0%, 100% { box-shadow: 0 1px 2px rgba(67, 56, 202, .2); }
+  50% { box-shadow: 0 1px 2px rgba(67, 56, 202, .2), 0 0 0 3px var(--primary-soft); }
+}
+#saveBtn:disabled { cursor: progress; }
 
 /* ==========================================================================
    Form Sections
@@ -971,15 +1060,31 @@ body {
   transition: var(--transition);
   font-family: inherit;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
+  position: relative;
+}
+.template-card::after {
+  content: "→";
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 15px;
+  font-weight: 700;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: var(--transition);
 }
 .template-card:hover {
   border-color: var(--primary);
   background: var(--bg-elevated);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border-subtle));
 }
+.template-card:hover::after { opacity: 1; transform: translateX(0); color: var(--primary); }
+.template-card:hover .template-title { color: var(--primary); }
+.template-card:hover .template-icon { transform: scale(1.08) rotate(-3deg); }
+.template-card:active { transform: translateY(0); }
 .template-icon {
   width: 30px;
   height: 30px;
@@ -988,6 +1093,7 @@ body {
   place-items: center;
   font-size: 15px;
   flex-shrink: 0;
+  transition: var(--transition);
 }
 .template-icon.blue { background: var(--tag-socks-bg); color: var(--tag-socks-fg); }
 .template-icon.amber { background: var(--tag-http-bg); color: var(--tag-http-fg); }
@@ -1020,12 +1126,12 @@ body {
   height: 56px;
   margin: 0 auto 14px;
   border-radius: 14px;
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
+  background: linear-gradient(135deg, var(--primary-soft), var(--primary-softer));
+  border: 1px solid color-mix(in srgb, var(--primary) 14%, transparent);
   display: grid;
   place-items: center;
   font-size: 24px;
-  color: var(--text-muted);
+  color: var(--primary);
 }
 .empty-state h3 {
   font-size: 15px;
@@ -1036,13 +1142,14 @@ body {
 }
 .empty-state p {
   font-size: 13px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   color: var(--text-muted);
   max-width: 380px;
   margin-left: auto;
   margin-right: auto;
   line-height: 1.5;
 }
+.empty-state .actions .btn { min-height: 34px; }
 .empty-state .actions {
   display: flex;
   gap: 8px;

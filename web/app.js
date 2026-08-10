@@ -21,6 +21,28 @@ function showToast(msg, type = 'success') {
 let _runningSince = null;
 let _uptimeTimer = null;
 
+// ─── 未保存变更追踪 ────────────────────────────
+let _dirty = false;
+const _origTitle = document.title;
+
+function markDirty() {
+  if (_dirty) return;
+  _dirty = true;
+  document.title = '● ' + _origTitle;
+  const btn = document.getElementById('saveBtn');
+  if (btn) btn.classList.add('dirty');
+}
+function markClean() {
+  if (!_dirty) return;
+  _dirty = false;
+  document.title = _origTitle;
+  const btn = document.getElementById('saveBtn');
+  if (btn) btn.classList.remove('dirty');
+}
+window.addEventListener('beforeunload', (e) => {
+  if (_dirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
 async function checkStatus() {
   const t0 = performance.now();
   let data;
@@ -1138,6 +1160,7 @@ function reloadOutboundsAndRouting() {
 
 // ─── Save / Load ───────────────────────────────
 async function refreshConfig() {
+  if (_dirty && !confirm('当前有未保存的更改，确定要重新加载服务器配置吗？未保存的修改将丢失。')) return;
   try {
     const data = await api('/api/config');
     const parsed = JSON.parse(data.config);
@@ -1153,6 +1176,7 @@ async function refreshConfig() {
       updateCharCount();
     }
     updateOverview();
+    markClean();
     showToast('配置已加载');
   } catch(e) {
     if (currentTab === 'form') {
@@ -1164,6 +1188,7 @@ async function refreshConfig() {
 }
 
 async function saveConfig() {
+  const saveBtn = document.getElementById('saveBtn');
   let configStr;
   if (currentTab === 'form') {
     // Collect pending edits from textareas
@@ -1185,12 +1210,16 @@ async function saveConfig() {
     } catch(e) { /* textarea may have invalid JSON mid-edit */ }
   }
   try {
+    if (saveBtn) { saveBtn.classList.add('loading'); saveBtn.disabled = true; }
     await api('/api/config', 'PUT', { config: configStr });
     updateOverview();
+    markClean();
     showToast('配置已保存并应用');
     checkStatus();
   } catch(e) {
     showToast('保存失败: ' + e.message, 'error');
+  } finally {
+    if (saveBtn) { saveBtn.classList.remove('loading'); saveBtn.disabled = false; }
   }
 }
 
@@ -1294,6 +1323,7 @@ function loadTemplate(name) {
   }
   populateState(t);
   buildForm();
+  markDirty();
   showToast('模板已加载，请修改服务器信息');
 }
 
@@ -1311,9 +1341,10 @@ document.addEventListener('change', function(e) {
               el.type === 'number' ? (el.value === '' ? '' : parseFloat(el.value)) :
               el.value;
     }
-    setNested(state, path, value);
+   setNested(state, path, value);
+    markDirty();
 
-    // Inbound protocol change → re-render settings
+   // Inbound protocol change → re-render settings
     if (path.match(/^inbounds\.\d+\.protocol$/)) {
       const idx = parseInt(path.split('.')[1]);
       reloadInboundSettings(idx);
@@ -1390,6 +1421,7 @@ document.addEventListener('click', function(e) {
     case 'add-rule': addRule(); break;
     case 'remove-rule': removeRule(idx); break;
   }
+  markDirty();
 });
 
 function reloadInboundSettings(idx) {
@@ -1473,8 +1505,9 @@ function importConfig(ev) {
       const parsed = JSON.parse(e.target.result);
       populateState(parsed);
       if (currentTab !== 'form') switchTab('form');
-      buildForm();
-      showToast('配置已导入: ' + file.name);
+     buildForm();
+      markDirty();
+     showToast('配置已导入: ' + file.name);
     } catch(err) {
       showToast('文件解析失败: ' + err.message, 'error');
     }
@@ -1503,8 +1536,9 @@ function toggleTheme() {
 (function initJsonEditor() {
   const editor = document.getElementById('configEditor');
   if (!editor) return;
-  editor.addEventListener('input', () => { updateJsonGutter(); updateCharCount(); });
-  editor.addEventListener('scroll', () => {
+ editor.addEventListener('input', () => { updateJsonGutter(); updateCharCount(); });
+  editor.addEventListener('input', markDirty);
+ editor.addEventListener('scroll', () => {
     const gutter = document.getElementById('jsonGutter');
     if (gutter) gutter.scrollTop = editor.scrollTop;
   });
@@ -1524,6 +1558,11 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     saveConfig();
   }
+});
+
+// Track edits in form JSON textareas (DNS / Transport / Policy) as dirty
+document.addEventListener('input', (e) => {
+  if (e.target.matches && e.target.matches('textarea[data-path]')) markDirty();
 });
 
 updateOverview();
