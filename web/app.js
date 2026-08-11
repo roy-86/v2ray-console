@@ -130,6 +130,7 @@ async function doRestart() {
 
 // ─── State & Defaults ──────────────────────────
 let currentTab = 'form';
+let currentSubTab = 'inbounds';
 const state = {
   inbounds: [], outbounds: [],
   routing: { settings: { domainStrategy: 'AsIs', domainMatcher: 'linear', rules: [], balancers: [] } },
@@ -409,33 +410,53 @@ function generateUUIDFor(btn) {
 }
 
 // ─── Build Form ────────────────────────────────
+const SUB_TABS = [
+  { key: 'inbounds',  label: '📥 入站',      build: buildInboundsSection },
+  { key: 'outbounds', label: '📤 出站',      build: buildOutboundsSection },
+  { key: 'routing',   label: '🔀 路由',      build: buildRoutingSection },
+  { key: 'dns',       label: '📡 DNS',       build: buildDnsSection },
+  { key: 'log',       label: '📋 日志',      build: buildLogSection },
+  { key: 'policy',    label: '⚙️ 策略+传输',  build: buildPolicySection },
+];
+
 function buildForm() {
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('configForm').style.display = '';
-  let html = '';
-  html += buildInboundsSection();
-  html += buildOutboundsSection();
-  html += buildRoutingSection();
-  html += '<div class="collapsible" style="margin-top:24px">';
-  html += '  <div class="collapsible-header" onclick="toggleCollapsible(this)"><span class="arrow">▶</span> 📡 DNS</div>';
-  html += '  <div class="collapsible-body">' + buildDnsSection() + '</div>';
+  // 保留当前选中的子 tab（如果还存在），否则回到入站
+  const known = SUB_TABS.map(t => t.key);
+  if (!known.includes(currentSubTab)) currentSubTab = 'inbounds';
+
+  let html = '<div class="tabs tabs-section" role="tablist">';
+  SUB_TABS.forEach(t => {
+    const active = t.key === currentSubTab ? ' active' : '';
+    html += '<button class="tab-btn' + active + '" data-subtab="' + t.key + '" onclick="switchSubTab(\'' + t.key + '\')">' + t.label + '</button>';
+  });
   html += '</div>';
-  html += '<div class="collapsible">';
-  html += '  <div class="collapsible-header" onclick="toggleCollapsible(this)"><span class="arrow">▶</span> 📋 日志</div>';
-  html += '  <div class="collapsible-body">' + buildLogSection() + '</div>';
-  html += '</div>';
-  html += '<div class="collapsible">';
-  html += '  <div class="collapsible-header" onclick="toggleCollapsible(this)"><span class="arrow">▶</span> ⚙️ 策略 + 全局传输</div>';
-  html += '  <div class="collapsible-body">' + buildPolicySection() + '</div>';
-  html += '</div>';
+
+  SUB_TABS.forEach(t => {
+    const active = t.key === currentSubTab ? ' active' : '';
+    html += '<div class="sub-panel' + active + '" id="panel-' + t.key + '" data-panel="' + t.key + '">';
+    html += t.build();
+    html += '</div>';
+  });
+
   document.getElementById('configForm').innerHTML = html;
   updateOverview();
+}
+
+function switchSubTab(key) {
+  currentSubTab = key;
+  document.querySelectorAll('#configForm .tabs-section .tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.subtab === key);
+  });
+  document.querySelectorAll('#configForm .sub-panel').forEach(p => {
+    p.classList.toggle('active', p.dataset.panel === key);
+  });
 }
 
 // ─── Inbounds ──────────────────────────────────
 function buildInboundsSection() {
   let h = '<div class="form-section" id="section-inbounds">';
-  h += '<div class="section-title">📥 入站 <span class="badge">' + state.inbounds.length + '</span></div>';
   state.inbounds.forEach((ib, i) => { h += buildInboundItem(ib, i); });
   h += '<div class="array-actions"><button class="btn-add" data-action="add-inbound">➕ 添加入站</button></div>';
   h += '</div>';
@@ -623,7 +644,6 @@ function buildInboundAdvanced(ib, i) {
 // ─── Outbounds ─────────────────────────────────
 function buildOutboundsSection() {
   let h = '<div class="form-section" id="section-outbounds">';
-  h += '<div class="section-title">📤 出站 <span class="badge">' + state.outbounds.length + '</span></div>';
   state.outbounds.forEach((ob, i) => { h += buildOutboundItem(ob, i); });
   h += '<div class="array-actions"><button class="btn-add" data-action="add-outbound">➕ 添加出站</button></div>';
   h += '</div>';
@@ -941,7 +961,6 @@ function buildRoutingSection() {
   const rules = r.settings.rules || [];
   const balancers = r.settings.balancers || [];
   let h = '<div class="form-section" id="section-routing">';
-  h += '<div class="section-title">🔀 路由 <span class="badge">' + rules.length + ' 条规则</span></div>';
   h += '<div class="form-row">';
   h += '<div class="form-group"><label>域名策略</label><select class="form-select" data-path="routing.settings.domainStrategy">';
   ['AsIs','IPIfNonMatch','IPOnDemand'].forEach(v => { h += '<option value="'+v+'"'+((r.settings.domainStrategy||'AsIs')===v?' selected':'')+'>'+v+'</option>'; });
