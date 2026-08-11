@@ -86,9 +86,20 @@
    </div>
  </section>
 
-  <!-- Config Card -->
-  <div class="card">
-    <div class="card-header">
+ <!-- Config Card -->
+ <div class="card">
+
+  <!-- Flow Visualization -->
+  <section class="flow-viz-card" id="flowVizCard" style="display:none">
+    <div class="flow-viz-header" onclick="toggleFlowViz()">
+      <h2>🔀 流量走向</h2>
+      <span class="hint" id="flowVizHint">默认全部走代理，按规则分流</span>
+      <span class="flow-viz-arrow" id="flowVizArrow">▾</span>
+    </div>
+    <div class="flow-viz-body" id="flowVizBody"></div>
+  </section>
+
+  <div class="card-header">
       <h2>配置文件 <span class="count" id="configCharCount">0 字符</span></h2>
       <div class="card-header-tools">
         <div class="tabs">
