@@ -184,6 +184,43 @@ const DEFAULTS = {
   dnsServer: { address: '8.8.8.8', port: 53, domains: [], expectIPs: [] }
 };
 
+// ─── 规则预设模板 ─────────────────────────────
+// 内网 / 本地 / DNS 三个常用分流模板；每个模板提供两种变体：
+//   - `geo`: 使用 geoip 关键字（依赖 geoip.dat / dlc.dat，开箱即配置即可生效）
+//   - `raw`: 直接写死具体网段/端口，不依赖外部数据文件
+const RULE_PRESETS = {
+  'private-ip': {
+    label: '内网 IP',
+    icon: '🏠',
+    desc: '命中私有网段 → direct',
+    variants: {
+      geo: { ip: ['geoip:private'], outboundTag: 'direct' },
+      raw: { ip: [
+        '127.0.0.0/8', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16',
+        '::1/128', 'fc00::/7', 'fe80::/10'
+      ], outboundTag: 'direct' }
+    }
+  },
+  'local-ip': {
+    label: '本地 IP',
+    icon: '🇨🇳',
+    desc: '命中中国大陆 IP → direct',
+    variants: {
+      geo: { ip: ['geoip:cn'], outboundTag: 'direct' },
+      raw: { ip: [] }  // raw 模式下大陆 IP 段太多，不展开，留空提示用户手动填
+    }
+  },
+  'dns': {
+    label: 'DNS',
+    icon: '📡',
+    desc: '命中 DNS 端口 → direct',
+    variants: {
+      geo: { port: '53', network: 'udp', outboundTag: 'direct' },
+      raw: { port: '53', network: 'udp', outboundTag: 'direct' }
+    }
+  }
+};
+
 // ─── Tab 切换 ──────────────────────────────────
 function switchTab(tab) {
   currentTab = tab;
@@ -915,7 +952,13 @@ function buildRoutingSection() {
   h += '</div>';
   // Rules
   rules.forEach((rule, i) => { h += buildRuleItem(rule, i); });
-  h += '<div class="array-actions"><button class="btn-add" data-action="add-rule">➕ 添加规则</button></div>';
+  // 快速模板按钮：内网 IP / 本地 IP / DNS，外加一个空白规则按钮
+  h += '<div class="array-actions" style="display:flex;gap:8px;flex-wrap:wrap">';
+  h += '  <button class="btn-add preset-add" data-action="add-preset-rule" data-preset="private-ip" title="添加：私有网段走 direct（geoip:private 或具体网段）">🏠 添加：内网 IP</button>';
+  h += '  <button class="btn-add preset-add" data-action="add-preset-rule" data-preset="local-ip" title="添加：中国大陆 IP 走 direct（geoip:cn）">🇨🇳 添加：本地 IP</button>';
+  h += '  <button class="btn-add preset-add" data-action="add-preset-rule" data-preset="dns" title="添加：DNS 端口（53/UDP）走 direct">📡 添加：DNS</button>';
+  h += '  <button class="btn-add preset-add preset-blank" data-action="add-rule" title="添加一条空白规则">➕ 自定义规则</button>';
+  h += '</div>';
   // Balancers
   if (balancers.length > 0) {
     h += '<div class="sub-section" style="margin-top:16px"><div class="sub-section-title">负载均衡器</div>';
@@ -1147,6 +1190,58 @@ function addRule() {
 function removeRule(idx) {
   state.routing.settings.rules.splice(idx, 1);
   reloadSection('section-routing', buildRoutingSection());
+}
+
+// 预设规则：在 addRule 按钮行下方弹出一个内联的「geoip / 原始 IP」二选一行，
+// 选完即插入对应规则的 rule，关闭弹层。
+function addPresetRule(presetKey) {
+  const preset = RULE_PRESETS[presetKey];
+  if (!preset) return;
+  // 关闭上一次可能还挂着的弹层
+  closePresetPicker();
+  // DNS 的两种变体结果相同，跳过选择直接插入
+  const sameVariant =
+    JSON.stringify(preset.variants.geo) === JSON.stringify(preset.variants.raw);
+  if (sameVariant) {
+    insertPresetRule(preset, 'geo');
+    return;
+  }
+  // 在 array-actions 行后面插入一个内联选择器
+  const actions = document.querySelector('#section-routing .array-actions');
+  if (!actions) return;
+  const picker = document.createElement('div');
+  picker.className = 'preset-picker';
+  picker.dataset.preset = presetKey;
+  picker.innerHTML =
+    '<span class="preset-picker-label">' + preset.icon + ' ' + esc(preset.label) +
+      ' · 选择变体：</span>' +
+    '<button type="button" class="preset-chip" data-variant="geo">' +
+      '🌐 使用 geoip 关键字 <span class="hint">(需 geoip.dat)</span></button>' +
+    '<button type="button" class="preset-chip" data-variant="raw">' +
+      '🔢 写死具体网段/端口 <span class="hint">(无需数据文件)</span></button>' +
+    '<button type="button" class="preset-chip preset-chip-cancel" data-variant="cancel">取消</button>';
+  actions.insertAdjacentElement('afterend', picker);
+}
+function insertPresetRule(preset, variant) {
+  const v = preset.variants[variant];
+  // 合并 DEFAULTS.rule（确保所有字段都在）再覆盖用户选择的字段
+  const rule = deepClone(DEFAULTS.rule);
+  if (v.ip) rule.ip = v.ip.slice();
+  if (v.port) rule.port = v.port;
+  if (v.network) rule.network = v.network;
+  if (v.outboundTag) rule.outboundTag = v.outboundTag;
+  // raw 模式下若 IP 为空（local-ip 的具体网段太多），只插入出站占位规则
+  if (variant === 'raw' && (!v.ip || v.ip.length === 0) && !v.port) {
+    rule.ip = [];
+  }
+  state.routing.settings.rules.push(rule);
+  reloadSection('section-routing', buildRoutingSection());
+  const variantLabel = variant === 'geo' ? 'geoip 关键字' : '具体网段';
+  showToast('已添加「' + preset.label + '」规则（' + variantLabel + '）');
+}
+function closePresetPicker() {
+  const old = document.querySelector('.preset-picker');
+  if (old) old.remove();
 }
 
 function reloadSection(id, html) {
@@ -1381,6 +1476,26 @@ document.addEventListener('change', function(e) {
 });
 
 document.addEventListener('click', function(e) {
+  // ── 预设规则 picker 的 chip 点击 ──
+  const chip = e.target.closest('.preset-chip');
+  if (chip) {
+    const picker = chip.closest('.preset-picker');
+    if (!picker) return;
+    const presetKey = picker.dataset.preset;
+    const variant = chip.dataset.variant;
+    e.preventDefault();
+    if (variant === 'cancel' || !variant) { closePresetPicker(); return; }
+    const preset = RULE_PRESETS[presetKey];
+    if (preset) insertPresetRule(preset, variant);
+    closePresetPicker();
+    markDirty();
+    return;
+  }
+  // ── 点 picker 外部区域关闭 ──
+  if (!e.target.closest('.preset-picker')) {
+    closePresetPicker();
+  }
+
   const btn = e.target.closest('button[data-action]');
   if (!btn) return;
   const action = btn.dataset.action;
@@ -1420,6 +1535,7 @@ document.addEventListener('click', function(e) {
     case 'remove-socks-account': removeSocksAccount(ibIdx, aIdx); break;
     case 'add-rule': addRule(); break;
     case 'remove-rule': removeRule(idx); break;
+    case 'add-preset-rule': addPresetRule(btn.dataset.preset); break;
   }
   markDirty();
 });
@@ -1448,6 +1564,7 @@ function updateOverview() {
   document.getElementById('ovOutboundsDetail').innerHTML = protoChips(countBy(obs.map(ob => ob.protocol))) || '无出站';
   document.getElementById('ovRulesDetail').textContent = rules.length + ' 条规则';
   document.getElementById('ovPortsDetail').textContent = ports.length ? ports.join(' · ') : '无监听';
+  buildFlowViz();
 }
 function countBy(arr) {
   return arr.reduce((acc, v) => { if (v) acc[v] = (acc[v]||0)+1; return acc; }, {});
@@ -1457,6 +1574,360 @@ function protoChips(counts) {
     '<span class="proto-chip">' + esc(k) + (v>1?' ×'+v:'') + '</span>'
   ).join('');
 }
+
+// ─── Flow Visualization ─────────────────────────
+const PROTO_LABELS = {
+  socks: 'SOCKS5', http: 'HTTP', vmess: 'VMess', vless: 'VLESS',
+  trojan: 'Trojan', shadowsocks: 'Shadowsocks', freedom: 'Freedom',
+  blackhole: 'Blackhole', dns: 'DNS', 'dokodemo-door': 'Dokodemo'
+};
+function protoLabel(p) { return PROTO_LABELS[p] || p || '—'; }
+
+function outboundDesc(ob) {
+  switch (ob.protocol) {
+    case 'freedom': return '直连，不走代理';
+    case 'blackhole': return '拦截 / 丢弃';
+    case 'dns': return 'DNS 出站';
+    default: return ob.tag || protoLabel(ob.protocol);
+  }
+}
+
+function outboundServer(ob) {
+  const s = ob.settings || {};
+  if (s.vnext && s.vnext[0]) return (s.vnext[0].address || '服务器') + (s.vnext[0].port ? ':' + s.vnext[0].port : '');
+  if (s.servers && s.servers[0]) return (s.servers[0].address || '服务器') + (s.servers[0].port ? ':' + s.servers[0].port : '');
+  return ob.tag || protoLabel(ob.protocol);
+}
+
+// 返回目的地节点链（代理类有"服务器地址"+"目标网站"两个）
+// arrow: 指向该节点的那条箭头上的标签
+function destChain(ob) {
+  switch (ob.protocol) {
+    case 'freedom': return [{ text: '目标网站', cls: 'target', arrow: '直连' }];
+    case 'blackhole': return [{ text: '流量丢弃', cls: 'block' }];
+    case 'dns': return [{ text: 'DNS 解析处理', cls: '' }];
+    default: return [
+      { text: outboundServer(ob), cls: 'server', arrow: transportLabel(ob) },
+      { text: '目标网站', cls: 'target', arrow: '代理转发' }
+    ];
+  }
+}
+
+// 出站归属的路径语义：direct(绿) / block(红) / proxy(紫)
+function flowPathCls(ob) {
+  if (ob.protocol === 'freedom') return 'direct';
+  if (ob.protocol === 'blackhole') return 'block';
+  return 'proxy';
+}
+
+// 传输方式标注，如 "WS / TLS"（v4 字段名：network / security）
+function transportLabel(ob) {
+  const ss = ob.streamSettings || {};
+  const parts = [];
+  if (ss.network) parts.push(String(ss.network).toUpperCase());
+  if (ss.security && ss.security !== 'none') parts.push(String(ss.security).toUpperCase());
+  return parts.join(' / ');
+}
+
+function describeRule(rule) {
+  const chips = [];
+  if (rule.ip && rule.ip.length) {
+    const v = rule.ip.join(', ');
+    chips.push({ k: 'IP', v: v.includes('geoip:private') ? '内网地址' : v });
+  }
+  if (rule.domain && rule.domain.length) chips.push({ k: '域名', v: rule.domain.join(', ') });
+  if (rule.port) chips.push({ k: '端口', v: rule.port });
+  if (rule.network) chips.push({ k: '网络', v: rule.network.toUpperCase() });
+  if (rule.protocol) chips.push({ k: '协议', v: rule.protocol });
+  if (rule.inboundTag && rule.inboundTag.length) chips.push({ k: '入站', v: rule.inboundTag.join(', ') });
+  return chips;
+}
+function ruleCondStr(rule) {
+  const parts = describeRule(rule);
+  if (parts.length === 0) return '所有流量';
+  return parts.map(c => c.k + ': ' + c.v).join(' · ');
+}
+
+function buildFlowViz() {
+  const card = document.getElementById('flowVizCard');
+  const body = document.getElementById('flowVizBody');
+  const hint = document.getElementById('flowVizHint');
+  if (!card || !body) return;
+
+  const inbs = state.inbounds || [];
+  const obs = state.outbounds || [];
+  const rules = (state.routing && state.routing.settings && state.routing.settings.rules) || [];
+
+  if (obs.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  // 按 outboundTag 分组规则
+  const rulesByTag = {};
+  rules.forEach((r, idx) => {
+    const tag = r.outboundTag || '';
+    if (!rulesByTag[tag]) rulesByTag[tag] = [];
+    rulesByTag[tag].push({ r, idx });
+  });
+  const defaultTag = obs[0] ? (obs[0].tag || '') : '';
+  const hasRouting = rules.length > 0;
+
+  hint.textContent = hasRouting
+    ? rules.length + ' 条规则分流，其余走默认（' + outboundDesc(obs[0]) + '）'
+    : '无路由规则，全部走默认（' + outboundDesc(obs[0]) + '）';
+
+  // 计算网格尺寸
+  // 主轴占 3 个内容列（app, inbound, router），每列之间 1 个箭头列
+  // 路由之后：每个出站路径占 [条件列][出站列][dest1][dest2]... 个内容列
+  const maxDests = Math.max(...obs.map(ob => destChain(ob).length));
+  // 路由后的内容列数 = 1(条件) + 1(出站) + maxDests
+  const postRouterContentCols = 2 + maxDests;
+  // 总网格列 = 3(主轴内容) + 2(主轴箭头) + 1(路由后箭头) + postRouterContentCols + (postRouterContentCols-1)(箭头)
+  // 简化：直接用 grid-template-columns: repeat(N, auto) 并手动指定 grid-column
+  // 每个内容节点占奇数列(1,3,5,7...)，箭头占偶数列(2,4,6,8...)
+  const totalContentCols = 3 + postRouterContentCols; // app, inbound, router, cond, outbound, dest1, dest2...
+  const totalGridCols = totalContentCols * 2 - 1; // 内容列 + 箭头列
+
+  // 每个出站占一行
+  const totalRows = obs.length;
+  // 主轴在第 1 行，路由后从第 1 行开始每个出站占一行
+  // 实际上路由在第1行，每个出站路径从路由向右延伸
+
+  let html = '';
+  html += '<div class="flow-canvas" style="--cols:' + totalGridCols + ';--rows:' + totalRows + '">';
+
+  // ── 主轴：应用、入站、路由 ──
+  // app: col 1, row 1
+  html += '<div class="flow-node flow-node-app" style="grid-column:1;grid-row:1">';
+  html += '<div class="flow-node-title">🖥️ 应用发起连接</div>';
+  html += '<div class="flow-node-sub">浏览器 / curl 等</div></div>';
+  // arrow col 2
+  html += '<div class="flow-arrow-r" style="grid-column:2;grid-row:1"></div>';
+  // inbound: col 3, row 1
+  html += '<div class="flow-node flow-node-inbound" style="grid-column:3;grid-row:1">';
+  html += '<div class="flow-node-title">📥 入站 Inbound</div>';
+  if (inbs.length === 0) {
+    html += '<div class="flow-node-sub">无入站</div>';
+  } else {
+    html += '<div class="flow-inbound-ports">';
+    inbs.forEach(ib => {
+      html += '<span class="proto-chip">' + protoLabel(ib.protocol) + ' :' + esc(ib.port || '—') + '</span>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  // arrow col 4
+  html += '<div class="flow-arrow-r" style="grid-column:4;grid-row:1"></div>';
+  // router: col 5, row 1 (span all rows for visual centering)
+  html += '<div class="flow-node flow-node-router" style="grid-column:5;grid-row:1">';
+  html += '<div class="flow-router-diamond"><span>🔀</span></div>';
+  html += '<div class="flow-node-title">路由匹配</div>';
+  html += '<div class="flow-node-sub">' + rules.length + ' 条规则</div></div>';
+
+  // ── 路由后的内容列起始 ──
+  // col 6 = arrow, col 7 = 条件(rules/default), col 8 = arrow, col 9 = outbound, col 10 = arrow, col 11 = dest1, col 12 = arrow, col 12+2 = dest2...
+  const condCol = 7;
+  const outCol = 9;
+  const destStartCol = 11;
+  // 各行 dest 链右对齐，终点自然纵向对齐在同一列。
+  // 「目标网站」全图只画一个（首个用到它的路径上），其余路径用 L 折线向上汇入，
+  // 避免同一个终点被重复画成多个方块。
+  let targetAnchored = false;
+
+  // 每个出站一行
+  obs.forEach((ob, i) => {
+    const isDefault = i === 0;
+    const tag = ob.tag || '';
+    const row = i + 1;
+    const pathCls = flowPathCls(ob);
+    let matched = [];
+    if (isDefault) {
+      matched = (rulesByTag[''] || []).slice();
+      if (defaultTag && rulesByTag[defaultTag]) matched = matched.concat(rulesByTag[defaultTag]);
+    } else {
+      matched = rulesByTag[tag] || [];
+    }
+    const dests = destChain(ob);
+
+    // 路由 → 条件列 的箭头（col 6），按路径着色并标注命中/未命中
+    let branchLabel = '';
+    if (matched.length > 0) branchLabel = isDefault ? '命中 / 未命中' : '命中';
+    else if (isDefault) branchLabel = '未命中';
+    html += '<div class="flow-arrow-r flow-branch-arrow labeled ' + pathCls + '" style="grid-column:6;grid-row:' + row + '">';
+    if (branchLabel) html += '<span class="flow-arrow-label">' + branchLabel + '</span>';
+    html += '</div>';
+
+    // 条件列（col 7）：规则节点竖向堆叠；仅有规则时才加虚线分组框
+    html += '<div class="flow-rules-stack is-' + pathCls + '-path' + (matched.length > 0 ? ' framed' : '') + '" style="grid-column:' + condCol + ';grid-row:' + row + '">';
+    if (matched.length > 1) {
+      html += '<span class="flow-rules-label">自上而下 · 命中即停</span>';
+    }
+    matched.forEach(m => {
+      html += '<div class="flow-rule-node">';
+      html += '<div class="flow-rule-num">规则 #' + (m.idx + 1) + '</div>';
+      html += '<div class="flow-rule-cond">' + esc(ruleCondStr(m.r)) + '</div>';
+      html += '</div>';
+    });
+    if (isDefault) {
+      html += '<div class="flow-rule-node is-default">';
+      html += '<div class="flow-rule-num">默认</div>';
+      html += '<div class="flow-rule-cond">' + (hasRouting ? '未命中任何规则' : '所有流量') + '</div>';
+      html += '</div>';
+    }
+    if (!isDefault && matched.length === 0) {
+      html += '<div class="flow-rule-node is-empty"><div class="flow-rule-cond">无规则指向</div></div>';
+    }
+    html += '</div>';
+
+    // 条件 → 出站 箭头（col 8）
+    html += '<div class="flow-arrow-r ' + pathCls + '" style="grid-column:8;grid-row:' + row + '"></div>';
+
+    // 出站节点（col 9）
+    html += '<div class="flow-node flow-node-out ' + pathCls + (isDefault ? ' default' : '') + '" style="grid-column:' + outCol + ';grid-row:' + row + '">';
+    html += '<div class="flow-node-title"><span class="protocol-tag ' + (ob.protocol || '') + '">' + protoLabel(ob.protocol) + '</span>';
+    if (isDefault) html += '<span class="flow-default-badge">默认</span>';
+    html += '</div>';
+    html += '<div class="flow-node-sub">' + esc(outboundDesc(ob)) + (ob.tag ? ' · ' + esc(ob.tag) : '') + '</div>';
+    html += '</div>';
+
+    // 出站 → dest 链：靠右对齐，使各行终点落在同一列。
+    // 注意 grid-template-columns 是 auto，空列会塌缩为 0 宽，靠 span 跨列并不能
+    // 产生位移；因此直接把链尾锚定到固定的末列，短链自然从更靠右的列开始。
+    const lastContentCol = destStartCol + (maxDests - 1) * 2;   // 终点所在列
+    let curCol = lastContentCol - (dests.length - 1) * 2;       // 本行链首节点列
+    dests.forEach((dest, di) => {
+      const al = dest.arrow || '';
+      // 「目标网站」已在上方某行画过：本行不再重复画，改留一个占位条，
+      // 随后用 L 折线从这里向上汇入那个唯一的终点节点。
+      // 占位条从出站节点右侧一直拉到终点列，跨过本行空出的中间列。
+      if (dest.cls === 'target' && targetAnchored) {
+        const from = di === 0 ? outCol + 1 : curCol - 1;
+        html += '<div class="flow-arrow-merge ' + pathCls + '" style="grid-column:' +
+                from + '/' + (curCol + 1) + ';grid-row:' + row + '">';
+        if (al) html += '<span class="flow-arrow-label">' + esc(al) + '</span>';
+        html += '</div>';
+        curCol += 2;
+        return;
+      }
+      // 箭头（标签由 destChain 给出：直连 / 传输方式 / 代理转发）
+      html += '<div class="flow-arrow-r ' + pathCls + (al ? ' labeled' : '') +
+              '" style="grid-column:' + (curCol - 1) + ';grid-row:' + row + '">';
+      if (al) html += '<span class="flow-arrow-label">' + esc(al) + '</span>';
+      html += '</div>';
+      // dest 节点
+      const anchor = dest.cls === 'target' ? ' is-target-anchor' : '';
+      html += '<div class="flow-node flow-node-dest ' + dest.cls + anchor + '" style="grid-column:' + curCol + ';grid-row:' + row + '">';
+      html += '<div class="flow-node-title">' + esc(dest.text) + '</div>';
+      html += '</div>';
+      if (dest.cls === 'target') targetAnchored = true;
+      curCol += 2;
+    });
+
+  });
+
+  // 如果有多个出站，路由下方加竖向连线
+  if (obs.length > 1) {
+    // 在路由节点(col5)的 row1 和 row2 之间画竖线
+    html += '<div class="flow-arrow-d-bus" style="grid-column:5;grid-row:1/' + (totalRows + 1) + '"></div>';
+  }
+
+  html += '</div>'; // flow-canvas
+
+  // ── 图例：只列出当前配置里实际存在的路径 ──
+  const legendDefs = [
+    { cls: 'direct', match: ob => ob.protocol === 'freedom',   text: '直连路径：命中规则 → direct(freedom) → 目标网站' },
+    { cls: 'proxy',  match: ob => ob.protocol !== 'freedom' && ob.protocol !== 'blackhole',
+      text: '代理路径：经出站服务器中转 → 目标网站' },
+    { cls: 'block',  match: ob => ob.protocol === 'blackhole', text: '拦截路径：命中规则 → blackhole → 流量丢弃' }
+  ].filter(d => obs.some(d.match));
+
+  if (legendDefs.length > 1) {
+    html += '<div class="flow-legend"><span class="flow-legend-title">图例</span>';
+    legendDefs.forEach(d => {
+      html += '<span class="flow-legend-item">';
+      html += '<span class="flow-legend-swatch ' + d.cls + '"></span>' + d.text;
+      html += '</span>';
+    });
+    html += '</div>';
+  }
+
+  body.innerHTML = html;
+
+  // 第 2 行起的分支，改用一条完整的 L 形折线从路由下方接到规则组：
+  // 单个元素画完「竖直段 + 转角 + 横向段 + 箭头」，整条同色、无拼接接缝。
+  const bus = body.querySelector('.flow-arrow-d-bus');
+  if (bus) {
+    // 第 1 行由路由右侧水平引出，不走折线；折线只服务第 2 行起
+    const branchArrows = Array.from(body.querySelectorAll('.flow-canvas > .flow-branch-arrow')).slice(1);
+    if (branchArrows.length) {
+      const busRect = bus.getBoundingClientRect();
+      const originY = busRect.top;   // 折线竖直段的起点（路由节点底部下方）
+      const originX = busRect.left;  // 路由节点水平中心
+
+      branchArrows.forEach(a => {
+        const r = a.getBoundingClientRect();
+        const midY = r.top + r.height / 2;
+        // 横向段延伸到分支箭头原本的右端，由折线自带的箭头收尾
+        const w = r.right - originX;
+        const h = midY - originY;
+        if (w <= 0 || h <= 0) return;
+
+        const elbow = document.createElement('span');
+        elbow.className = 'flow-bus-elbow';
+        elbow.style.left = '0px';
+        elbow.style.top = '0px';
+        elbow.style.width = w + 'px';
+        elbow.style.height = h + 'px';
+        const pc = ['direct', 'proxy', 'block'].find(c => a.classList.contains(c));
+        if (pc) elbow.style.setProperty('--elbow-color', 'var(--flow-' + pc + '-br)');
+        bus.appendChild(elbow);
+
+        // 原来的水平分支箭头已被折线取代，隐去避免重复画线；
+        // 标签移到折线的横向段上方，位置保持不变
+        a.style.background = 'none';
+        a.classList.add('is-superseded');
+      });
+    }
+  }
+
+  // 「目标网站」全图只画一个（在最先用到它的那一行）。其余路径不再重复画方块，
+  // 而是从本行水平引出、在终点列拐弯向上，汇入那个唯一的终点节点。
+  const canvas = body.querySelector('.flow-canvas');
+  const anchorNode = canvas && canvas.querySelector('.is-target-anchor');
+  const merges = canvas ? Array.from(canvas.querySelectorAll('.flow-arrow-merge')) : [];
+  if (anchorNode && merges.length) {
+    const cRect = canvas.getBoundingClientRect();
+    const aRect = anchorNode.getBoundingClientRect();
+    // 画布可横向滚动，坐标换算到画布内容坐标系
+    const ox = canvas.scrollLeft - cRect.left;
+    const oy = canvas.scrollTop - cRect.top;
+    const upX = aRect.left + aRect.width / 2 + ox;  // 竖直段：对齐终点节点中心
+    const upY = aRect.bottom + oy;                  // 折线终点：终点节点底边
+
+    merges.forEach(m => {
+      const r = m.getBoundingClientRect();
+      const x = r.left + ox;                        // 横向段起点（出站节点右侧）
+      const w = upX - x;
+      const h = r.top + r.height / 2 + oy - upY;
+      if (w <= 0 || h <= 0) return;
+
+      const elbow = document.createElement('span');
+      elbow.className = 'flow-merge-elbow';
+      elbow.style.left = x + 'px';
+      elbow.style.top = upY + 'px';
+      elbow.style.width = w + 'px';
+      elbow.style.height = h + 'px';
+      const pc = ['direct', 'proxy', 'block'].find(c => m.classList.contains(c));
+      if (pc) elbow.style.setProperty('--elbow-color', 'var(--flow-' + pc + '-br)');
+      canvas.appendChild(elbow);
+    });
+  }
+}
+
+function toggleFlowViz() {
+  const card = document.getElementById('flowVizCard');
+  if (card) card.classList.toggle('collapsed');
+}
+
 
 // ─── Config: Copy / Export / Import ───────────
 async function copyConfig() {
