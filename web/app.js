@@ -1719,9 +1719,10 @@ function buildFlowViz() {
   html += '<div class="flow-arrow-r" style="grid-column:4;grid-row:1"></div>';
   // router: col 5, row 1 (span all rows for visual centering)
   html += '<div class="flow-node flow-node-router" style="grid-column:5;grid-row:1">';
-  html += '<div class="flow-router-diamond"><span>🔀</span></div>';
+  html += '<div class="flow-router-icon"><span>🔀</span></div>';
   html += '<div class="flow-node-title">路由匹配</div>';
-  html += '<div class="flow-node-sub">' + rules.length + ' 条规则</div></div>';
+  html += '<div class="flow-node-sub">' + rules.length + ' 条规则</div>';
+  html += '</div>';
 
   // ── 路由后的内容列起始 ──
   // col 6 = arrow, col 7 = 条件(rules/default), col 8 = arrow, col 9 = outbound, col 10 = arrow, col 11 = dest1, col 12 = arrow, col 12+2 = dest2...

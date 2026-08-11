@@ -1350,7 +1350,7 @@ body {
   white-space: nowrap;
 }
 
-/* —— 路由判定（黄，菱形）—— */
+/* —— 路由判定（黄，圆角矩形）—— */
 .flow-node-router {
   background: var(--flow-route-bg);
   border-color: var(--flow-route-br);
@@ -1358,19 +1358,20 @@ body {
 }
 .flow-node-router .flow-node-title { color: var(--flow-route-fg); }
 .flow-node-router .flow-node-sub { color: var(--flow-route-fg); opacity: .8; }
-.flow-router-diamond {
-  width: 34px;
-  height: 34px;
+.flow-router-icon {
+  width: 38px;
+  height: 38px;
   margin: 2px auto 8px;
   background: var(--bg-elevated);
   border: 1.5px solid var(--flow-route-br);
   display: grid;
   place-items: center;
-  font-size: 14px;
+  font-size: 18px;
+  line-height: 1;
   transform: rotate(45deg);
   border-radius: 7px;
 }
-.flow-router-diamond span { transform: rotate(-45deg); display: block; }
+.flow-router-icon span { transform: rotate(-45deg); display: block; }
 
 /* —— 规则组容器（对应 drawio 的虚线分组框）—— */
 .flow-rules-stack {
