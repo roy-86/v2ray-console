@@ -565,6 +565,45 @@ body {
 .sub-panel.active { display: block; }
 
 /* ==========================================================================
+   Tag picker (负载均衡器选择器)
+   ========================================================================== */
+.tag-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  min-height: 34px;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--text-secondary);
+  background: var(--bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: var(--transition);
+  user-select: none;
+}
+.tag-chip:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+.tag-chip.selected {
+  color: #fff;
+  background: var(--primary, #6c7ee1);
+  border-color: var(--primary, #6c7ee1);
+}
+
+/* ==========================================================================
    Buttons
    ========================================================================== */
 .btn {
@@ -780,6 +819,22 @@ body {
   align-items: flex-end;
 }
 .form-row:last-child { margin-bottom: 0; }
+/* balancer 卡片内有绝对定位的提示，给卡片底部额外 padding 防止提示贴边 */
+.array-item:has([data-warn-single]),
+.array-item:has([data-warn-mixed]) { padding-bottom: 28px; }
+/* 选择器列：提示绝对定位到 chip 框下沿，保持行内水平基线对齐。 */
+.form-group:has(.tag-picker) {
+  position: relative;
+}
+/* 选择器列的「不足 2 个」与「混选语义」提示互斥，同一位置显示其一。 */
+.form-group:has(.tag-picker) > [data-warn-single],
+.form-group:has(.tag-picker) > [data-warn-mixed] {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin: 4px 0 0 0;
+  white-space: nowrap;
+}
 .form-group {
   display: flex;
   flex-direction: column;

@@ -390,6 +390,32 @@ function getOutboundTags() {
   return state.outbounds.map((ob, i) => ob.tag || `${ob.protocol}-${i}`);
 }
 
+// 按 tag 查找出站协议，用于负载均衡器的语义校验
+function getOutboundProtocol(tag) {
+  const ob = state.outbounds.find(o => (o.tag || `${o.protocol}-${state.outbounds.indexOf(o)}`) === tag);
+  return ob ? ob.protocol : null;
+}
+
+// 哪些协议属于「代理」类（适合放进负载均衡池）
+const PROXY_PROTOCOLS = new Set(['vmess', 'vless', 'trojan', 'shadowsocks', 'ss', 'http', 'socks']);
+// 哪些协议属于「非代理 / 系统类」——混入会破坏均衡语义
+const NON_PROXY_PROTOCOLS = new Set(['freedom', 'blackhole', 'dns', 'loopback']);
+
+// 检查 balancer.selector 是否混入了非代理出站。
+// 与「不足 2 个」提示互斥：<2 时优先显示单选提示，混选提示只在 ≥2 时出现，
+// 保证同一时刻同一位置只有一条提示。
+function getMixedProtocolWarning(selector) {
+  if (!Array.isArray(selector) || selector.length < 2) return null;
+  const tags = selector.map(t => ({ tag: t, proto: getOutboundProtocol(t) }));
+  const proxy = tags.filter(t => t.proto && PROXY_PROTOCOLS.has(t.proto));
+  const nonProxy = tags.filter(t => t.proto && NON_PROXY_PROTOCOLS.has(t.proto));
+  if (proxy.length > 0 && nonProxy.length > 0) {
+    const list = nonProxy.map(t => `${t.tag} (${t.proto})`).join('、');
+    return `⚠ 检测到混选不同语义出站：${list}。负载均衡器适合把等价代理链路打包，直连/黑洞/DNS 等混入会破坏均衡意图，请改用路由规则分流。`;
+  }
+  return null;
+}
+
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 
 // ─── UUID Generator ───────────────────────────────
@@ -959,6 +985,21 @@ function buildMuxSettings(ob, i) {
 function buildRoutingSection() {
   const r = state.routing;
   const rules = r.settings.rules || [];
+  // 在渲染前清理 balancer selector 中已不存在的出站 tag（出站改名 / 删除后遗留的引用）。
+  // 不清理的话保存后 v2ray-core 会因 selector 指向未注册 tag 报错。
+  const currentTags = new Set(getOutboundTags());
+  const bals = r.settings.balancers || [];
+  bals.forEach(b => {
+    if (Array.isArray(b.selector)) {
+      b.selector = b.selector.filter(t => currentTags.has(t));
+    }
+  });
+  // 同样的清理也作用于规则：rule.outboundTag 指向已改名/删除的出站时也要清掉。
+  rules.forEach(rule => {
+    if (rule.outboundTag && !currentTags.has(rule.outboundTag)) {
+      rule.outboundTag = '';
+    }
+  });
   const balancers = r.settings.balancers || [];
   let h = '<div class="form-section" id="section-routing">';
   h += '<div class="form-row">';
@@ -981,15 +1022,43 @@ function buildRoutingSection() {
   // Balancers
   if (balancers.length > 0) {
     h += '<div class="sub-section" style="margin-top:16px"><div class="sub-section-title">负载均衡器</div>';
+    const outboundTags = getOutboundTags();
     balancers.forEach((b, bi) => {
-      h += '<div class="form-row" style="align-items:end">';
+      const selected = Array.isArray(b.selector) ? b.selector : [];
+      // 与 routing rule 同样的卡片样式，每条 balancer 独立一块
+      h += '<div class="array-item">';
+      h += '<div class="array-item-header">';
+      h += '<span class="array-item-title" style="font-size:12px">负载均衡器 #'+(bi+1)+'</span>';
+      h += '<button class="btn-remove" data-action="remove-balancer" data-b-index="'+bi+'" title="删除">✕</button>';
+      h += '</div>';
+      h += '<div class="form-row" style="align-items:center">';
       h += '<div class="form-group"><label>标签</label><input class="form-input" data-path="routing.settings.balancers.'+bi+'.tag" value="'+esc(b.tag||'')+'" style="width:120px"></div>';
-      h += '<div class="form-group"><label>选择器 <span class="hint">(逗号分隔出站标签)</span></label><input class="form-input" data-path="routing.settings.balancers.'+bi+'.selector" value="'+esc((b.selector||[]).join(', '))+'" style="width:200px"></div>';
+      h += '<div class="form-group" style="flex:1;min-width:240px"><label>选择器 <span class="hint">(点击下方出站标签进行多选)</span></label>';
+      // Hidden input carries the canonical value for saveConfig()
+      h += '<input type="hidden" data-path="routing.settings.balancers.'+bi+'.selector" value="'+esc(selected.join(','))+'">';
+      h += '<div class="tag-picker" data-picker-balancer="'+bi+'">';
+      outboundTags.forEach(t => {
+        const isSel = selected.includes(t);
+        h += '<button type="button" class="tag-chip'+(isSel?' selected':'')+'" data-tag="'+esc(t)+'" onclick="toggleBalancerChip(this)">'+esc(t)+'</button>';
+      });
+      if (outboundTags.length === 0) {
+        h += '<span class="hint">先在「出站」中添加带标签的出站</span>';
+      }
+      h += '</div>';
+      if (selected.length < 2) {
+        h += '<div class="hint" data-warn-single="'+bi+'">⚠ 负载均衡器至少需要 2 个出站；当前 '+selected.length+' 个，等同普通出站，可考虑用路由规则替代</div>';
+      } else {
+        const mixedWarn = getMixedProtocolWarning(selected);
+        if (mixedWarn) {
+          h += '<div class="hint" data-warn-mixed="'+bi+'">'+esc(mixedWarn)+'</div>';
+        }
+      }
+      h += '</div>';
       h += '<div class="form-group"><label>策略</label><select class="form-select" data-path="routing.settings.balancers.'+bi+'.strategy.type">';
       ['roundRobin','leastPing'].forEach(v => { h += '<option value="'+v+'"'+(b.strategy&&b.strategy.type===v?' selected':'')+'>'+v+'</option>'; });
       h += '</select></div>';
-      h += '<button class="btn-remove" data-action="remove-balancer" data-b-index="'+bi+'" style="margin-bottom:4px">✕</button>';
       h += '</div>';
+      h += '</div>'; // array-item 闭合
     });
     h += '</div>';
   }
@@ -1199,6 +1268,68 @@ function removeBalancer(bIdx) {
   if (!bals || bals.length <= 0) return;
   bals.splice(bIdx, 1);
   reloadSection('section-routing', buildRoutingSection());
+}
+
+// 切换 balancer 选择器中的一个 chip（出站 tag）的勾选状态。
+// 同步更新同一个 row 内的 hidden input（带 data-path），并触发 change 事件
+// 让现有序列化路径（setNested）将字符串 → 数组写入 state。
+function toggleBalancerChip(chipEl) {
+  const picker = chipEl.parentElement;
+  const bi = picker.dataset.pickerBalancer;
+  const row = picker.closest('.form-row');
+  const hidden = row.querySelector('input[type="hidden"][data-path*="balancers.' + bi + '.selector"]');
+  const bals = state.routing.settings.balancers || [];
+  const cur = Array.isArray(bals[bi] && bals[bi].selector) ? bals[bi].selector.slice() : [];
+  const tag = chipEl.dataset.tag;
+  const idx = cur.indexOf(tag);
+  if (idx >= 0) cur.splice(idx, 1); else cur.push(tag);
+  chipEl.classList.toggle('selected');
+  if (hidden) {
+    hidden.value = cur.join(',');
+    hidden.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  // 更新「不足 2 个出站」提示
+  const warn = row.querySelector('[data-warn-single="' + bi + '"]');
+  if (warn) {
+    if (cur.length < 2) {
+      warn.textContent = '⚠ 负载均衡器至少需要 2 个出站；当前 ' + cur.length + ' 个，等同普通出站，可考虑用路由规则替代';
+    } else {
+      warn.remove();
+    }
+  } else if (cur.length < 2) {
+    // 原本没提示（≥2 个），现在切回 <2，动态插入选择器列内（CSS 会绝对定位到 chip 框下沿）
+    const newWarn = document.createElement('div');
+    newWarn.className = 'hint';
+    newWarn.setAttribute('data-warn-single', bi);
+    newWarn.textContent = '⚠ 负载均衡器至少需要 2 个出站；当前 ' + cur.length + ' 个，等同普通出站，可考虑用路由规则替代';
+    const pickerGroup = picker.closest('.form-group');
+    if (pickerGroup) pickerGroup.appendChild(newWarn);
+    else row.appendChild(newWarn);
+  }
+
+  // 更新「混选不同语义出站」提示 — 只在 ≥2 时检查，与单选提示互斥同一位置
+  const mixedEl = row.querySelector('[data-warn-mixed="' + bi + '"]');
+  if (cur.length < 2) {
+    // <2 时优先单选提示，清掉任何残留的混选提示
+    if (mixedEl) mixedEl.remove();
+  } else {
+    const mixedMsg = getMixedProtocolWarning(cur);
+    if (mixedMsg) {
+      if (mixedEl) {
+        mixedEl.textContent = mixedMsg;
+      } else {
+        const newMixed = document.createElement('div');
+        newMixed.className = 'hint';
+        newMixed.setAttribute('data-warn-mixed', bi);
+        newMixed.textContent = mixedMsg;
+        const pickerGroup = picker.closest('.form-group');
+        if (pickerGroup) pickerGroup.appendChild(newMixed);
+        else row.appendChild(newMixed);
+      }
+    } else if (mixedEl) {
+      mixedEl.remove();
+    }
+  }
 }
 // Rules
 function addRule() {
