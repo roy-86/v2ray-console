@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V2Ray Console · 帮助文档</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --bg-soft: #f6f8fa;
+            --bg-code: #f6f8fa;
+            --bg-toc: #fafbfc;
+            --border: #d0d7de;
+            --border-strong: #afb8c1;
+            --text: #1f2328;
+            --text-secondary: #57606a;
+            --text-muted: #6e7781;
+            --link: #0969da;
+            --link-hover: #0550ae;
+            --accent: #0969da;
+            --accent-soft: #ddf4ff;
+            --table-stripe: #f6f8fa;
+            --shadow: 0 1px 3px rgba(31, 35, 40, 0.04);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0d1117;
+                --bg-soft: #161b22;
+                --bg-code: #161b22;
+                --bg-toc: #010409;
+                --border: #30363d;
+                --border-strong: #484f58;
+                --text: #e6edf3;
+                --text-secondary: #8b949e;
+                --text-muted: #6e7681;
+                --link: #58a6ff;
+                --link-hover: #79c0ff;
+                --accent: #58a6ff;
+                --accent-soft: rgba(56, 139, 253, 0.15);
+                --table-stripe: #161b22;
+                --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background: var(--bg);
+            margin: 0;
+        }
+
+        /* Layout: sidebar + main */
+        .layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            max-width: 1280px;
+            margin: 0 auto;
+            align-items: start;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 32px 16px 32px 24px;
+            border-right: 1px solid var(--border);
+            background: var(--bg-toc);
+        }
+
+        .sidebar-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0 0 12px 8px;
+        }
+
+        .toc {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .toc li {
+            margin: 0;
+        }
+
+        .toc a {
+            display: block;
+            padding: 5px 8px;
+            font-size: 13.5px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 6px;
+            line-height: 1.4;
+            transition: background 0.12s, color 0.12s;
+        }
+
+        .toc a:hover {
+            background: var(--bg-soft);
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .toc a.active {
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* H2 level: bold, larger */
+        .toc .lvl-2 > a {
+            font-weight: 600;
+            color: var(--text);
+            margin-top: 14px;
+            font-size: 14px;
+        }
+
+        .toc .lvl-2:first-child > a {
+            margin-top: 0;
+        }
+
+        /* H3 level: indented */
+        .toc .lvl-3 > a {
+            padding-left: 22px;
+            font-size: 13px;
+        }
+
+        /* Main content */
+        .main {
+            padding: 32px 48px 80px 48px;
+            min-width: 0;
+            max-width: 980px;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 600;
+            line-height: 1.25;
+            margin-top: 24px;
+            margin-bottom: 16px;
+            scroll-margin-top: 16px;
+        }
+
+        h1 {
+            font-size: 2em;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.3em;
+            margin-top: 0;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.3em;
+        }
+
+        h3 { font-size: 1.25em; }
+        h4 { font-size: 1.05em; }
+        h5, h6 { font-size: 0.95em; }
+
+        /* Heading anchor hover hint */
+        h2 a.anchor, h3 a.anchor, h4 a.anchor {
+            opacity: 0;
+            margin-left: 8px;
+            font-size: 0.8em;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: opacity 0.15s;
+        }
+
+        h2:hover a.anchor, h3:hover a.anchor, h4:hover a.anchor {
+            opacity: 1;
+        }
+
+        p { margin-top: 0; margin-bottom: 16px; }
+
+        a { color: var(--link); text-decoration: none; }
+        a:hover { color: var(--link-hover); text-decoration: underline; }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+            background: var(--bg-code);
+            padding: 0.2em 0.4em;
+            border-radius: 6px;
+            font-size: 85%;
+        }
+
+        pre {
+            background: var(--bg-code);
+            border-radius: 6px;
+            padding: 16px;
+            overflow: auto;
+            font-size: 85%;
+            line-height: 1.45;
+        }
+
+        pre code {
+            background: transparent;
+            padding: 0;
+            font-size: 100%;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 16px;
+            display: block;
+            overflow-x: auto;
+        }
+
+        table th, table td {
+            border: 1px solid var(--border);
+            padding: 6px 13px;
+            text-align: left;
+        }
+
+        table tr { background: var(--bg); border-top: 1px solid var(--border); }
+        table tr:nth-child(2n) { background: var(--table-stripe); }
+        table th { font-weight: 600; }
+
+        blockquote {
+            border-left: 4px solid var(--border);
+            padding: 0 1em;
+            color: var(--text-secondary);
+            margin: 0 0 16px 0;
+        }
+
+        ul, ol { padding-left: 2em; margin-bottom: 16px; }
+        li { margin-bottom: 4px; }
+
+        hr {
+            border: 0;
+            border-top: 1px solid var(--border);
+            margin: 24px 0;
+        }
+
+        strong { font-weight: 600; }
+
+        /* Mobile: hide sidebar, show as top bar */
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+
+            .sidebar {
+                position: relative;
+                height: auto;
+                max-height: none;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                padding: 20px 24px;
+            }
+
+            .main { padding: 24px; }
+        }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">目录</div>
+        <ul class="toc" id="toc">
+            <li class="lvl-2"><a href="#功能">功能</a></li>
+            <li class="lvl-2"><a href="#快速开始">快速开始</a></li>
+            <li class="lvl-3"><a href="#快速开始-前置条件">前置条件</a></li>
+            <li class="lvl-3"><a href="#快速开始-初始化配置">初始化配置</a></li>
+            <li class="lvl-3"><a href="#快速开始-编译运行">编译运行</a></li>
+            <li class="lvl-3"><a href="#快速开始-命令行参数">命令行参数</a></li>
+            <li class="lvl-2"><a href="#开机自启">开机自启</a></li>
+            <li class="lvl-3"><a href="#开机自启-macos">macOS</a></li>
+            <li class="lvl-3"><a href="#开机自启-linux">Linux（使用 systemd）</a></li>
+            <li class="lvl-2"><a href="#配置指南">配置指南</a></li>
+            <li class="lvl-3"><a href="#配置-结构总览">配置结构总览</a></li>
+            <li class="lvl-3"><a href="#配置-一-log-日志">一、Log 日志</a></li>
+            <li class="lvl-3"><a href="#配置-二-dns">二、DNS</a></li>
+            <li class="lvl-3"><a href="#配置-三-inbounds-入站">三、Inbounds 入站</a></li>
+            <li class="lvl-3"><a href="#配置-四-outbounds-出站">四、Outbounds 出站</a></li>
+            <li class="lvl-3"><a href="#配置-五-stream-settings-传输设置">五、Stream Settings 传输设置</a></li>
+            <li class="lvl-3"><a href="#配置-六-security-传输层安全">六、Security 传输层安全</a></li>
+            <li class="lvl-3"><a href="#配置-七-mux-多路复用">七、Mux 多路复用</a></li>
+            <li class="lvl-3"><a href="#配置-八-routing-路由">八、Routing 路由</a></li>
+            <li class="lvl-3"><a href="#配置-九-policy-策略">九、Policy 策略</a></li>
+            <li class="lvl-3"><a href="#配置-十-stats-api-统计与远程管理">十、Stats &amp; API 统计与远程管理</a></li>
+            <li class="lvl-3"><a href="#配置-十一-常见配置模式">十一、常见配置模式</a></li>
+            <li class="lvl-3"><a href="#配置-十二-字段名兼容性对照">十二、字段名兼容性对照</a></li>
+            <li class="lvl-2"><a href="#api-接口">API 接口</a></li>
+            <li class="lvl-2"><a href="#项目结构">项目结构</a></li>
+            <li class="lvl-2"><a href="#常见问题">常见问题</a></li>
+            <li class="lvl-2"><a href="#技术栈">技术栈</a></li>
+            <li class="lvl-2"><a href="#license">License</a></li>
+        </ul>
+    </aside>
+
+    <main class="main">
+        <h1 id="v2ray-console">V2Ray Console</h1>
+        <p>基于 Web 的 <a href="https://github.com/v2fly/v2ray-core">V2Ray</a>（v5）管理面板，提供可视化的配置编辑、启停控制和状态监控。</p>
+
+        <h2 id="功能">功能</h2>
+        <ul>
+            <li><strong>Web 管理界面</strong> — 浏览器中查看/编辑 V2Ray JSON 配置，支持可视化表单和 JSON 双模式</li>
+            <li><strong>启停控制</strong> — 一键启动、停止、重启 V2Ray 核心</li>
+            <li><strong>配置模板</strong> — 内置 SOCKS5 / HTTP 客户端模板，快速上手</li>
+            <li><strong>UUID 生成器</strong> — 表单内一键生成随机 UUID，方便 VMess 用户配置</li>
+            <li><strong>REST API</strong> — 支持远程管理，方便集成其他工具</li>
+            <li><strong>实时状态</strong> — 自动轮询显示运行状态和版本信息</li>
+        </ul>
+
+        <h2 id="快速开始">快速开始</h2>
+
+        <h3 id="快速开始-前置条件">前置条件</h3>
+        <ul>
+            <li>Go 1.21+</li>
+            <li><code>geoip.dat</code> 和 <code>geosite.dat</code>（路由规则需要）</li>
+        </ul>
+
+        <pre><code class="language-bash"># 下载 geo 数据文件（首次运行前必须）
+curl -sL -o geoip.dat "https://github.com/v2fly/geoip/releases/latest/download/geoip.dat"
+curl -sL -o geosite.dat "https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat"
+</code></pre>
+
+        <h3 id="快速开始-初始化配置">初始化配置</h3>
+        <pre><code class="language-bash"># 从示例配置文件创建实际配置（config.json 已 gitignore，需自行创建）
+cp config.example.json config.json
+</code></pre>
+        <p>然后用编辑器打开 <code>config.json</code>，将 <code>your-server.com</code>、<code>your-uuid-here</code> 等占位符替换为你的实际服务器信息。</p>
+
+        <h3 id="快速开始-编译运行">编译运行</h3>
+        <pre><code class="language-bash"># 编译
+go build -o v2ray-console .
+
+# 启动（默认使用 config.json，仅本机可访问）
+./v2ray-console -config config.json -port 8080
+
+# 指定监听地址（例如允许局域网访问）
+./v2ray-console -host 0.0.0.0 -port 8080
+</code></pre>
+        <p>打开浏览器访问 <code>http://localhost:8080</code>。</p>
+
+        <h3 id="快速开始-命令行参数">命令行参数</h3>
+        <table>
+            <thead>
+                <tr><th>参数</th><th>默认值</th><th>说明</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>-config</code></td><td><code>config.json</code></td><td>V2Ray 配置文件路径</td></tr>
+                <tr><td><code>-host</code></td><td><code>127.0.0.1</code></td><td>管理面板监听地址（仅本机）</td></tr>
+                <tr><td><code>-port</code></td><td><code>8080</code></td><td>管理面板监听端口</td></tr>
+            </tbody>
+        </table>
+
+        <h2 id="开机自启">开机自启</h2>
+
+        <h3 id="开机自启-macos">macOS</h3>
+        <p>以下按推荐程度排序，列举几种主流的开机自启方式。</p>
+
+        <hr>
+
+        <h4>1. LaunchAgent（推荐）</h4>
+        <p>最标准的方式，通过 plist 配置文件注册为系统服务。将以下文件保存到 <code>~/Library/LaunchAgents/com.v2ray.console.plist</code>：</p>
+
+        <pre><code class="language-xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd"&gt;
+&lt;plist version="1.0"&gt;
+&lt;dict&gt;
+    &lt;key&gt;Label&lt;/key&gt;
+    &lt;string&gt;com.v2ray.console&lt;/string&gt;
+    &lt;key&gt;ProgramArguments&lt;/key&gt;
+    &lt;array&gt;
+        &lt;string&gt;/Users/你的用户名/v2ray-console/v2ray-console&lt;/string&gt;
+        &lt;string&gt;-config&lt;/string&gt;
+        &lt;string&gt;/Users/你的用户名/v2ray-console/config.json&lt;/string&gt;
+        &lt;string&gt;-port&lt;/string&gt;
+        &lt;string&gt;8080&lt;/string&gt;
+    &lt;/array&gt;
+    &lt;key&gt;WorkingDirectory&lt;/key&gt;
+    &lt;string&gt;/Users/你的用户名/v2ray-console&lt;/string&gt;
+    &lt;key&gt;RunAtLoad&lt;/key&gt;
+    &lt;true/&gt;
+    &lt;key&gt;KeepAlive&lt;/key&gt;
+    &lt;true/&gt;
+    &lt;key&gt;StandardOutPath&lt;/key&gt;
+    &lt;string&gt;/Users/你的用户名/v2ray-console/stdout.log&lt;/string&gt;
+    &lt;key&gt;StandardErrorPath&lt;/key&gt;
+    &lt;string&gt;/Users/你的用户名/v2ray-console/stderr.log&lt;/string&gt;
+&lt;/dict&gt;
+&lt;/plist&gt;
+</code></pre>
+
+        <p>加载生效：</p>
+        <pre><code class="language-bash"># 加载（注册服务）
+launchctl load ~/Library/LaunchAgents/com.v2ray.console.plist
+
+# 手动启停
+launchctl start com.v2ray.console
+launchctl stop com.v2ray.console
+
+# 查看状态
+launchctl list com.v2ray.console
+
+# 卸载自启
+# launchctl unload ~/Library/LaunchAgents/com.v2ray.console.plist
+</code></pre>
+
+        <p><strong>plist 存放位置的区别：</strong></p>
+        <table>
+            <thead><tr><th>位置</th><th>用户上下文</th><th>适用场景</th></tr></thead>
+            <tbody>
+                <tr><td><code>~/Library/LaunchAgents/</code></td><td>当前用户登录后启动</td><td><strong>个人程序（最常用）</strong></td></tr>
+                <tr><td><code>/Library/LaunchAgents/</code></td><td>任意用户登录后启动</td><td>所有用户共享</td></tr>
+                <tr><td><code>/Library/LaunchDaemons/</code></td><td>系统启动时（root）</td><td>系统级服务</td></tr>
+            </tbody>
+        </table>
+
+        <p><strong>常用 key 说明：</strong></p>
+        <table>
+            <thead><tr><th>Key</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>RunAtLoad</code></td><td>加载时立即运行</td></tr>
+                <tr><td><code>KeepAlive</code></td><td><code>true</code> 表示崩溃/退出后自动重启</td></tr>
+                <tr><td><code>WorkingDirectory</code></td><td>指定工作目录（需要包含 <code>geoip.dat</code> / <code>geosite.dat</code>）</td></tr>
+                <tr><td><code>StandardOutPath</code> / <code>StandardErrorPath</code></td><td>日志输出路径</td></tr>
+                <tr><td><code>EnvironmentVariables</code></td><td>设置环境变量（如 <code>{"PATH": "/usr/local/bin:..."}</code>）</td></tr>
+            </tbody>
+        </table>
+
+        <blockquote>
+            <p><strong>注意</strong>：<code>WorkingDirectory</code> 必须设置为包含 <code>geoip.dat</code> 和 <code>geosite.dat</code> 的目录，否则路由规则会加载失败。</p>
+        </blockquote>
+
+        <hr>
+
+        <h4>2. 系统设置 → 登录项（GUI 方式）</h4>
+        <p><strong>系统设置 → 通用 → 登录项与扩展</strong>，点 <code>+</code> 添加 <code>v2ray-console</code>。</p>
+        <p>适合一次性配置，图形化操作。本质也是往 <code>~/Library/LaunchAgents/</code> 写 plist，系统帮你管理。</p>
+
+        <hr>
+
+        <h4>3. 用 <code>sfltool</code> 命令行添加登录项</h4>
+        <p>macOS 13+ 可用以下命令操作登录项：</p>
+        <pre><code class="language-bash">sfltool add-item com.apple.LSLoginItem /path/to/v2ray-console/v2ray-console
+</code></pre>
+
+        <hr>
+
+        <h4>4. Shell 配置注入（轻量方案）</h4>
+        <p>在 <code>~/.zshrc</code>（或 <code>~/.bash_profile</code>）末尾添加：</p>
+        <pre><code class="language-bash"># 后台运行 v2ray-console（仅在打开终端时触发）
+(pgrep -x v2ray-console &gt; /dev/null || ~/v2ray-console/v2ray-console -config ~/v2ray-console/config.json -port 8080 &amp;) &gt; /dev/null 2&gt;&amp;1
+</code></pre>
+        <blockquote>
+            <p><strong>限制</strong>：只在打开终端时触发，不是真正的开机自启。适合开发阶段临时使用。</p>
+        </blockquote>
+
+        <h3 id="开机自启-linux">Linux（使用 systemd）</h3>
+        <p>创建 systemd 用户服务（推荐，无需 root）：</p>
+        <pre><code class="language-bash"># 假设 v2ray-console 在 ~/v2ray-console/ 目录
+mkdir -p ~/.config/systemd/user
+
+cat &gt; ~/.config/systemd/user/v2ray-console.service &lt;&lt; 'EOF'
+[Unit]
+Description=V2Ray Console Management Panel
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/v2ray-console/v2ray-console -config %h/v2ray-console/config.json -port 8080
+WorkingDirectory=%h/v2ray-console
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:%h/v2ray-console/stdout.log
+StandardError=append:%h/v2ray-console/stderr.log
+
+[Install]
+WantedBy=default.target
+EOF
+
+# 重新加载 systemd 用户配置
+systemctl --user daemon-reload
+
+# 启用开机自启
+systemctl --user enable v2ray-console
+
+# 立即启动
+systemctl --user start v2ray-console
+
+# 查看状态
+systemctl --user status v2ray-console
+
+# 查看日志
+journalctl --user -u v2ray-console -f
+
+# 卸载自启
+# systemctl --user stop v2ray-console
+# systemctl --user disable v2ray-console
+# rm ~/.config/systemd/user/v2ray-console.service
+</code></pre>
+
+        <p>如果希望作为系统服务（所有用户可用，需要 root）：</p>
+        <pre><code class="language-bash">sudo cat &gt; /etc/systemd/system/v2ray-console.service &lt;&lt; 'EOF'
+[Unit]
+Description=V2Ray Console Management Panel
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/v2ray-console/v2ray-console -config /opt/v2ray-console/config.json -port 8080
+WorkingDirectory=/opt/v2ray-console
+Restart=on-failure
+RestartSec=5
+User=nobody
+StandardOutput=append:/opt/v2ray-console/stdout.log
+StandardError=append:/opt/v2ray-console/stderr.log
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable v2ray-console
+sudo systemctl start v2ray-console
+</code></pre>
+
+        <blockquote>
+            <p><strong>路径说明</strong>：<code>%h</code> 在 systemd 用户服务中自动展开为用户的家目录路径。如果 <code>v2ray-console</code> 安装在其他位置，请相应调整 <code>ExecStart</code> 和 <code>WorkingDirectory</code>。</p>
+        </blockquote>
+
+        <hr>
+
+        <h2 id="配置指南">配置指南</h2>
+        <p>配置文件使用 <strong>V2Ray v4 JSON 格式</strong>（与 Docker 镜像 <code>v2fly/v2fly-core</code> 兼容）。下面是完整的配置能力参考。</p>
+
+        <h3 id="配置-结构总览">配置结构总览</h3>
+        <pre><code class="language-json">{
+  "log":           {},     // 日志配置（可选）
+  "dns":           {},     // DNS 配置（可选）
+  "inbounds":      [],     // 入站（至少 1 个）
+  "outbounds":     [],     // 出站（至少 1 个）
+  "routing":       {},     // 路由规则（可选）
+  "policy":        {},     // 策略控制（可选）
+  "transport":     {},     // 全局传输设置（可选）
+  "stats":         {},     // 统计（可选）
+  "api":           {},     // 远程 API（可选）
+  "reverse":       {}      // 反向代理（可选）
+}
+</code></pre>
+        <p><strong>只要 <code>inbounds</code> 和 <code>outbounds</code> 是必须的，其余都可以省略</strong> — 各子系统都有合理的默认值。</p>
+
+        <hr>
+
+        <h3 id="配置-一-log-日志">一、Log 日志</h3>
+        <pre><code class="language-json">{
+  "log": {
+    "loglevel": "warning",
+    "access": "/var/log/v2ray/access.log",
+    "error": "/var/log/v2ray/error.log"
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th>字段</th><th>可选值</th><th>默认值</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>loglevel</code></td><td><code>debug</code> / <code>info</code> / <code>warning</code> / <code>error</code> / <code>none</code></td><td><code>warning</code></td><td>日志级别，<code>debug</code> 最详细</td></tr>
+                <tr><td><code>access</code></td><td>文件路径</td><td>不输出</td><td>访问日志路径</td></tr>
+                <tr><td><code>error</code></td><td>文件路径</td><td>不输出</td><td>错误日志路径</td></tr>
+            </tbody>
+        </table>
+        <blockquote>
+            <p>不设则日志只输出到容器/进程的标准流，级别为 <code>warning</code>。</p>
+        </blockquote>
+
+        <hr>
+
+        <h3 id="配置-二-dns">二、DNS</h3>
+        <pre><code class="language-json">{
+  "dns": {
+    "hosts": {
+      "domain:example.com": "1.2.3.4",
+      "example.com": "1.2.3.4"
+    },
+    "servers": [
+      {
+        "address": "8.8.8.8",
+        "port": 53,
+        "clientIP": "1.2.3.4",
+        "queryStrategy": "UseIP",
+        "skipFallback": false,
+        "domains": ["geosite:google"],
+        "expectIPs": ["geoip:us"]
+      },
+      "1.1.1.1",
+      "localhost"
+    ],
+    "queryStrategy": "UseIP",
+    "disableCache": false,
+    "disableFallback": false,
+    "tag": "dns-out"
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th>字段</th><th>默认值</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>hosts</code></td><td><code>{}</code></td><td>静态 DNS 记录，<code>domain:</code> 前缀表示精确域名匹配</td></tr>
+                <tr><td><code>servers</code></td><td><code>["localhost"]</code></td><td>DNS 服务器列表，每条可设独立策略</td></tr>
+                <tr><td><code>servers[].queryStrategy</code></td><td><code>UseIP</code></td><td><code>UseIP</code> / <code>UseIPv4</code> / <code>UseIPv6</code></td></tr>
+                <tr><td><code>servers[].domains</code></td><td><code>[]</code></td><td>指定哪些域名使用该服务器</td></tr>
+                <tr><td><code>servers[].expectIPs</code></td><td><code>[]</code></td><td>只接受指定 IP 范围的响应</td></tr>
+                <tr><td><code>queryStrategy</code></td><td><code>UseIP</code></td><td>全局查询策略</td></tr>
+                <tr><td><code>tag</code></td><td>无</td><td>DNS 出站标签，配合路由使用（让 DNS 走代理）</td></tr>
+            </tbody>
+        </table>
+        <blockquote>
+            <p><strong>完全省略</strong>则使用系统 DNS（<code>localhost</code>），对大多数桌面客户端已足够。</p>
+        </blockquote>
+
+        <hr>
+
+        <h3 id="配置-三-inbounds-入站">三、Inbounds 入站</h3>
+
+        <h4>3.1 通用入站字段</h4>
+        <pre><code class="language-json">{
+  "inbounds": [
+    {
+      "port": 10808,
+      "listen": "127.0.0.1",
+      "protocol": "socks",
+      "settings": {},
+      "tag": "my-inbound",
+      "allocate": {
+        "strategy": "always",
+        "refresh": 5,
+        "concurrency": 3
+      }
+    }
+  ]
+}
+</code></pre>
+        <table>
+            <thead><tr><th>字段</th><th>默认值</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>port</code></td><td><strong>必填</strong></td><td>监听端口</td></tr>
+                <tr><td><code>listen</code></td><td><code>"0.0.0.0"</code></td><td>监听地址</td></tr>
+                <tr><td><code>protocol</code></td><td><strong>必填</strong></td><td>入站协议</td></tr>
+                <tr><td><code>tag</code></td><td>自动生成</td><td>标签，路由引用时必填</td></tr>
+                <tr><td><code>allocate.strategy</code></td><td><code>"always"</code></td><td>端口分配策略（<code>always</code> 或 <code>random</code>）</td></tr>
+            </tbody>
+        </table>
+
+        <h4>3.2 支持的协议</h4>
+
+        <h5>SOCKS (Socks 5)</h5>
+        <pre><code class="language-json">{
+  "protocol": "socks",
+  "settings": {
+    "auth": "noauth",
+    "udp": true,
+    "accounts": [
+      { "user": "username", "pass": "password" }
+    ],
+    "ip": "127.0.0.1",
+    "userLevel": 0
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th>字段</th><th>默认值</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>auth</code></td><td><code>"noauth"</code></td><td><code>"noauth"</code> 或 <code>"password"</code></td></tr>
+                <tr><td><code>udp</code></td><td><code>false</code></td><td>是否支持 UDP 转发</td></tr>
+                <tr><td><code>accounts</code></td><td><code>[]</code></td><td>密码认证时的用户列表</td></tr>
+                <tr><td><code>ip</code></td><td><code>"0.0.0.0"</code></td><td>出站 IP 绑定</td></tr>
+            </tbody>
+        </table>
+
+        <h5>HTTP</h5>
+        <pre><code class="language-json">{
+  "protocol": "http",
+  "settings": {
+    "timeout": 360,
+    "accounts": [
+      { "user": "username", "pass": "password" }
+    ],
+    "allowTransparent": false,
+    "userLevel": 0
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th>字段</th><th>默认值</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>timeout</code></td><td><code>360</code></td><td>超时（秒）</td></tr>
+                <tr><td><code>accounts</code></td><td><code>[]</code></td><td>基本认证用户</td></tr>
+                <tr><td><code>allowTransparent</code></td><td><code>false</code></td><td>是否允许透明代理</td></tr>
+            </tbody>
+        </table>
+
+        <h5>VMess (入站 — 服务端场景)</h5>
+        <pre><code class="language-json">{
+  "protocol": "vmess",
+  "settings": {
+    "clients": [
+      {
+        "id": "uuid-here",
+        "alterId": 0,
+        "security": "auto",
+        "level": 1
+      }
+    ],
+    "disableInsecureEncryption": true
+  }
+}
+</code></pre>
+        <blockquote>
+            <p>服务端入站使用 <code>settings.clients</code>（数组），与客户端出站的 <code>settings.vnext[].users</code> 对应。</p>
+        </blockquote>
+
+        <h5>VLESS (入站)</h5>
+        <pre><code class="language-json">{
+  "protocol": "vless",
+  "settings": {
+    "clients": [
+      {
+        "id": "uuid-here",
+        "flow": "xtls-rprx-vision",
+        "encryption": "none",
+        "level": 1
+      }
+    ],
+    "decryption": "none",
+    "fallbacks": [
+      {
+        "dest": 80,
+        "xver": 1
+      }
+    ]
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th>字段</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>flow</code></td><td>流控模式：<code>xtls-rprx-vision</code> / <code>xtls-rprx-vision-udp443</code></td></tr>
+                <tr><td><code>fallbacks</code></td><td>回落配置，未匹配时转到其他服务（如 Nginx）</td></tr>
+            </tbody>
+        </table>
+
+        <h5>Shadowsocks (入站)</h5>
+        <pre><code class="language-json">{
+  "protocol": "shadowsocks",
+  "settings": {
+    "method": "aes-256-gcm",
+    "password": "your-password",
+    "network": "tcp,udp",
+    "email": "user@example.com",
+    "level": 1
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th>加密方法</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>aes-256-gcm</code></td><td>AES GCM（推荐）</td></tr>
+                <tr><td><code>aes-128-gcm</code></td><td>较快的 AES 加密</td></tr>
+                <tr><td><code>chacha20-poly1305</code></td><td>移动端友好</td></tr>
+                <tr><td><code>2022-blake3-aes-128gcm</code></td><td>SS 2022 协议（需 <code>reality</code> 配合，服务端需 SHAKE256 密码）</td></tr>
+            </tbody>
+        </table>
+
+        <h5>Trojan (入站)</h5>
+        <pre><code class="language-json">{
+  "protocol": "trojan",
+  "settings": {
+    "clients": [
+      { "password": "password1", "level": 1 }
+    ],
+    "fallbacks": [
+      { "dest": 80 }
+    ]
+  }
+}
+</code></pre>
+
+        <h5>Dokodemo-door (任意门 / 透明代理)</h5>
+        <pre><code class="language-json">{
+  "protocol": "dokodemo-door",
+  "settings": {
+    "network": "tcp,udp",
+    "followRedirect": true,
+    "port": 53,
+    "address": "8.8.8.8"
+  },
+  "sniffing": {
+    "enabled": true,
+    "destOverride": ["http", "tls"]
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th>字段</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>followRedirect</code></td><td>跟随 iptables 重定向流量（透明代理）</td></tr>
+                <tr><td><code>sniffing</code></td><td>流量嗅探，自动识别真实目标地址</td></tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <h3 id="配置-四-outbounds-出站">四、Outbounds 出站</h3>
+
+        <h4>4.1 通用出站字段</h4>
+        <pre><code class="language-json">{
+  "outbounds": [
+    {
+      "protocol": "vmess",
+      "settings": {},
+      "tag": "proxy",
+      "proxySettings": {
+        "tag": "another-proxy"
+      },
+      "mux": {
+        "enabled": false,
+        "concurrency": 8
+      }
+    }
+  ]
+}
+</code></pre>
+        <table>
+            <thead><tr><th>字段</th><th>默认值</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>protocol</code></td><td><strong>必填</strong></td><td>出站协议</td></tr>
+                <tr><td><code>tag</code></td><td>自动</td><td>标签，路由引用</td></tr>
+                <tr><td><code>sendThrough</code></td><td><code>"0.0.0.0"</code></td><td>绑定出站 IP</td></tr>
+                <tr><td><code>proxySettings.tag</code></td><td>无</td><td>链式代理（经另一个出站转发）</td></tr>
+                <tr><td><code>mux.enabled</code></td><td><code>false</code></td><td>多路复用（一个 TCP 连接承载多个请求）</td></tr>
+                <tr><td><code>mux.concurrency</code></td><td><code>8</code></td><td>最大并发复用连接数</td></tr>
+            </tbody>
+        </table>
+
+        <h4>4.2 支持的协议</h4>
+
+        <h5>VMess (客户端出站)</h5>
+        <pre><code class="language-json">{
+  "protocol": "vmess",
+  "settings": {
+    "vnext": [
+      {
+        "address": "your-server.com",
+        "port": 443,
+        "users": [
+          {
+            "id": "uuid-here",
+            "alterId": 0,
+            "security": "auto",
+            "level": 1
+          }
+        ]
+      }
+    ]
+  },
+  "streamSettings": {
+    "network": "ws",
+    "security": "tls",
+    "wsSettings": { "path": "/ws", "headers": { "host": "your-server.com" } },
+    "tlsSettings": { "serverName": "your-server.com", "allowInsecure": false }
+  },
+  "mux": { "enabled": false, "concurrency": 8 }
+}
+</code></pre>
+        <table>
+            <thead><tr><th><code>security</code> 选项</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>auto</code></td><td>自动选择（推荐）</td></tr>
+                <tr><td><code>aes-128-gcm</code></td><td>AES 加密</td></tr>
+                <tr><td><code>chacha20-poly1305</code></td><td>ChaCha20 加密</td></tr>
+                <tr><td><code>none</code></td><td>不加密</td></tr>
+                <tr><td><code>zero</code></td><td>无加密无认证（仅测试用）</td></tr>
+            </tbody>
+        </table>
+
+        <h5>VLESS (出站)</h5>
+        <pre><code class="language-json">{
+  "protocol": "vless",
+  "settings": {
+    "vnext": [
+      {
+        "address": "your-server.com",
+        "port": 443,
+        "users": [
+          {
+            "id": "uuid-here",
+            "encryption": "none",
+            "flow": "",
+            "level": 1
+          }
+        ]
+      }
+    ]
+  },
+  "streamSettings": {
+    "network": "tcp",
+    "security": "reality",
+    "realitySettings": {
+      "serverName": "www.microsoft.com",
+      "fingerprint": "chrome",
+      "publicKey": "...",
+      "shortId": "...",
+      "spiderX": "/"
+    }
+  }
+}
+</code></pre>
+        <blockquote>
+            <p><strong>与 VMess 的对比</strong>：VLESS 取消加密层，必须配合 TLS/Reality 传输层安全；VMess 自带加密。VLESS + Reality 是当前推荐的性能组合。</p>
+        </blockquote>
+
+        <h5>Trojan (出站)</h5>
+        <pre><code class="language-json">{
+  "protocol": "trojan",
+  "settings": {
+    "servers": [
+      {
+        "address": "your-server.com",
+        "port": 443,
+        "password": "password1",
+        "email": "user@example.com",
+        "level": 1
+      }
+    ]
+  },
+  "streamSettings": {
+    "network": "tcp",
+    "security": "tls",
+    "tlsSettings": { "serverName": "your-server.com" }
+  }
+}
+</code></pre>
+
+        <h5>Shadowsocks (出站)</h5>
+        <pre><code class="language-json">{
+  "protocol": "shadowsocks",
+  "settings": {
+    "servers": [
+      {
+        "address": "your-server.com",
+        "port": 443,
+        "method": "aes-256-gcm",
+        "password": "your-password",
+        "email": "user@example.com",
+        "level": 1
+      }
+    ]
+  }
+}
+</code></pre>
+
+        <h5>Freedom (直连 — ⚡ 几乎必配的出站)</h5>
+        <pre><code class="language-json">{
+  "protocol": "freedom",
+  "settings": {
+    "domainStrategy": "UseIP",
+    "redirect": "",
+    "userLevel": 0
+  },
+  "tag": "direct"
+}
+</code></pre>
+        <table>
+            <thead><tr><th>字段</th><th>默认值</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>domainStrategy</code></td><td><code>"AsIs"</code></td><td><code>UseIP</code> / <code>AsIs</code> / <code>UseIPv4</code> / <code>UseIPv6</code></td></tr>
+                <tr><td><code>redirect</code></td><td><code>""</code></td><td>将所有流量重定向到指定地址 <code>127.0.0.1:1234</code></td></tr>
+            </tbody>
+        </table>
+
+        <h5>Blackhole (黑洞 / 丢弃)</h5>
+        <pre><code class="language-json">{
+  "protocol": "blackhole",
+  "settings": {
+    "response": {
+      "type": "http"
+    }
+  },
+  "tag": "block"
+}
+</code></pre>
+        <table>
+            <thead><tr><th><code>type</code></th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>"none"</code></td><td>直接断开连接</td></tr>
+                <tr><td><code>"http"</code></td><td>返回 404 页面</td></tr>
+            </tbody>
+        </table>
+
+        <h5>DNS (专用 DNS 出站)</h5>
+        <pre><code class="language-json">{
+  "protocol": "dns",
+  "tag": "dns-out"
+}
+</code></pre>
+        <blockquote>
+            <p>配合路由使用：将 DNS 查询送入该出站，经由代理转发 DNS 请求，避免 DNS 污染。</p>
+        </blockquote>
+
+        <h5>Loopback (回环)</h5>
+        <pre><code class="language-json">{
+  "protocol": "loopback",
+  "tag": "loopback-out",
+  "settings": {
+    "inboundTag": "intercept-in"
+  }
+}
+</code></pre>
+        <blockquote>
+            <p>将流量重新送回另一个入站，适用于透明代理的二次处理。</p>
+        </blockquote>
+
+        <hr>
+
+        <h3 id="配置-五-stream-settings-传输设置">五、Stream Settings 传输设置</h3>
+        <p>每个出站都可以配置 <code>streamSettings</code>，决定数据用哪种协议传输。</p>
+        <pre><code class="language-json">"streamSettings": {
+  "network": "tcp",       // 传输协议
+  "security": "none",     // 传输层安全
+  "sockopt": {
+    "mark": 0,
+    "tcpFastOpen": false,
+    "tproxy": "redirect"
+  }
+}
+</code></pre>
+
+        <h4>5.1 支持的传输协议</h4>
+        <table>
+            <thead><tr><th><code>network</code></th><th>说明</th><th>适合场景</th></tr></thead>
+            <tbody>
+                <tr><td><code>tcp</code></td><td>原始 TCP</td><td>基本直连、HTTP 伪装</td></tr>
+                <tr><td><code>kcp</code></td><td>mKCP (基于 UDP)</td><td>弱网环境、移动端</td></tr>
+                <tr><td><code>ws</code></td><td>WebSocket</td><td>最广泛的伪装，CDN 友好</td></tr>
+                <tr><td><code>h2</code></td><td>HTTP/2</td><td>需要 HTTP/2 多路复用</td></tr>
+                <tr><td><code>quic</code></td><td>QUIC (基于 UDP)</td><td>低延迟、多路复用</td></tr>
+                <tr><td><code>grpc</code></td><td>gRPC</td><td>高并发，CDN 友好</td></tr>
+            </tbody>
+        </table>
+
+        <h4>5.2 TCP</h4>
+        <pre><code class="language-json">"streamSettings": {
+  "network": "tcp",
+  "tcpSettings": {
+    "header": {
+      "type": "http",
+      "response": {
+        "version": "1.1",
+        "status": "200",
+        "reason": "OK",
+        "headers": {
+          "Content-Type": ["application/octet-stream"]
+        }
+      }
+    }
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th><code>header.type</code></th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>"none"</code></td><td>无伪装（默认）</td></tr>
+                <tr><td><code>"http"</code></td><td>HTTP 伪装，流量看起来像 HTTP 响应</td></tr>
+            </tbody>
+        </table>
+
+        <h4>5.3 WebSocket (WS)</h4>
+        <pre><code class="language-json">"streamSettings": {
+  "network": "ws",
+  "wsSettings": {
+    "path": "/ws",
+    "headers": {
+      "host": "your-server.com"
+    }
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th>字段</th><th>默认值</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>path</code></td><td><code>"/"</code></td><td>WebSocket 路径</td></tr>
+                <tr><td><code>headers.host</code></td><td>无</td><td>HTTP Host 头（CDN 场景必设）</td></tr>
+            </tbody>
+        </table>
+        <blockquote>
+            <p>WS 是 CDN 友好的首选方案，配合 TLS 使用不易被墙检测。</p>
+        </blockquote>
+
+        <h4>5.4 mKCP (KCP over UDP)</h4>
+        <pre><code class="language-json">"streamSettings": {
+  "network": "kcp",
+  "kcpSettings": {
+    "mtu": 1350,
+    "tti": 20,
+    "uplinkCapacity": 5,
+    "downlinkCapacity": 20,
+    "congestion": false,
+    "readBuffer": 2,
+    "writeBuffer": 2,
+    "header": {
+      "type": "wechat-video"
+    },
+    "seed": "my-password"
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th><code>header.type</code></th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>"none"</code></td><td>默认</td></tr>
+                <tr><td><code>"wechat-video"</code></td><td>伪装为微信视频通话</td></tr>
+                <tr><td><code>"utp"</code></td><td>伪装为 uTP</td></tr>
+                <tr><td><code>"dtls"</code></td><td>伪装为 DTLS 1.2</td></tr>
+                <tr><td><code>"wireguard"</code></td><td>伪装为 WireGuard</td></tr>
+            </tbody>
+        </table>
+        <table>
+            <thead><tr><th>mKCP 参数</th><th>默认值</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>mtu</code></td><td><code>1350</code></td><td>最大传输单元（建议 1350+，越大越浪费）</td></tr>
+                <tr><td><code>tti</code></td><td><code>20</code></td><td>时间间隔（ms，越小响应越快）</td></tr>
+                <tr><td><code>uplinkCapacity</code></td><td><code>5</code></td><td>上行带宽 MBps</td></tr>
+                <tr><td><code>downlinkCapacity</code></td><td><code>20</code></td><td>下行带宽 MBps</td></tr>
+                <tr><td><code>congestion</code></td><td><code>false</code></td><td>是否启用拥塞控制</td></tr>
+                <tr><td><code>seed</code></td><td><code>""</code></td><td>混淆种子（防墙识别）</td></tr>
+            </tbody>
+        </table>
+
+        <h4>5.5 QUIC</h4>
+        <pre><code class="language-json">"streamSettings": {
+  "network": "quic",
+  "quicSettings": {
+    "security": "aes-128-gcm",
+    "key": "your-key",
+    "header": {
+      "type": "srtp"
+    }
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th><code>header.type</code></th><th>伪装说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>"none"</code></td><td>默认</td></tr>
+                <tr><td><code>"srtp"</code></td><td>伪装为 SRTP 视频流</td></tr>
+                <tr><td><code>"utp"</code></td><td>伪装为 uTP</td></tr>
+                <tr><td><code>"wechat-video"</code></td><td>伪装为微信视频</td></tr>
+                <tr><td><code>"dtls"</code></td><td>伪装为 DTLS</td></tr>
+                <tr><td><code>"wireguard"</code></td><td>伪装为 WireGuard</td></tr>
+            </tbody>
+        </table>
+
+        <h4>5.6 gRPC</h4>
+        <pre><code class="language-json">"streamSettings": {
+  "network": "grpc",
+  "grpcSettings": {
+    "serviceName": "your-service",
+    "multiMode": false,
+    "idle_timeout": 60,
+    "health_check_timeout": 20,
+    "permit_without_stream": false,
+    "initial_windows_size": 0
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th>字段</th><th>默认值</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>serviceName</code></td><td><strong>必填</strong></td><td>gRPC 服务名</td></tr>
+                <tr><td><code>multiMode</code></td><td><code>false</code></td><td>多路复用模式</td></tr>
+            </tbody>
+        </table>
+
+        <h4>5.7 HTTP/2 (h2)</h4>
+        <pre><code class="language-json">"streamSettings": {
+  "network": "h2",
+  "httpSettings": {
+    "host": ["your-server.com"],
+    "path": "/"
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th>字段</th><th>默认值</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>host</code></td><td><code>["127.0.0.1"]</code></td><td>主机名数组</td></tr>
+                <tr><td><code>path</code></td><td><code>"/"</code></td><td>路径</td></tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <h3 id="配置-六-security-传输层安全">六、Security 传输层安全</h3>
+
+        <h4>6.1 TLS</h4>
+        <pre><code class="language-json">"streamSettings": {
+  "security": "tls",
+  "tlsSettings": {
+    "serverName": "your-server.com",
+    "allowInsecure": false,
+    "alpn": ["h2", "http/1.1"],
+    "minVersion": "1.2",
+    "maxVersion": "1.3",
+    "cipherSuites": "",
+    "certFile": "/path/to/cert.pem",
+    "keyFile": "/path/to/key.pem",
+    "pinSHA256": ["cert-sha256-hash"]
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th>字段</th><th>默认值</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>serverName</code></td><td>空</td><td>SNI，CDN/反代场景<strong>建议填写</strong>，不填则不发 SNI</td></tr>
+                <tr><td><code>allowInsecure</code></td><td><code>false</code></td><td>是否允许不安全证书（客户端开发可开）</td></tr>
+                <tr><td><code>alpn</code></td><td>空</td><td>ALPN 协商，如 <code>["h2", "http/1.1"]</code></td></tr>
+                <tr><td><code>minVersion</code></td><td><code>"1.2"</code></td><td>最低 TLS 版本</td></tr>
+                <tr><td><code>maxVersion</code></td><td><code>"1.3"</code></td><td>最高 TLS 版本</td></tr>
+                <tr><td><code>certFile</code></td><td>空</td><td>服务端证书路径（入站场景）</td></tr>
+                <tr><td><code>keyFile</code></td><td>空</td><td>服务端私钥路径（入站场景）</td></tr>
+            </tbody>
+        </table>
+        <blockquote>
+            <p><strong>常见误区</strong>：<code>serverName</code> 在客户端留空不会导致 TLS 握手失败，但很多 CDN（如 Cloudflare）靠 SNI 路由，所以建议填上。</p>
+        </blockquote>
+
+        <h4>6.2 Reality</h4>
+        <p>Reality 是 VLESS 的专属安全传输，无需 TLS 证书即可实现 TLS 级别的加密和域名伪装。</p>
+        <pre><code class="language-json">"streamSettings": {
+  "network": "tcp",
+  "security": "reality",
+  "realitySettings": {
+    "serverName": "www.microsoft.com",
+    "fingerprint": "chrome",
+    "show": false,
+    "publicKey": "...",         // 客户端：服务端公钥
+    "privateKey": "...",        // 服务端：私钥
+    "shortId": "0123456789ab",  // 短 ID（8 位十六进制）
+    "spiderX": "/",             // 爬虫路径
+    "dest": "www.microsoft.com:443",  // 服务端：回落目标
+    "serverNames": [            // 服务端：可接受 SNI 列表
+      "www.microsoft.com"
+    ]
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th>字段</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>fingerprint</code></td><td>TLS 指纹：<code>chrome</code> / <code>firefox</code> / <code>safari</code> / <code>random</code> / <code>randomized</code></td></tr>
+                <tr><td><code>serverName</code></td><td>客户端：伪装成访问该域名</td></tr>
+                <tr><td><code>publicKey</code></td><td>客户端：服务端公钥（由服务端的私钥生成）</td></tr>
+                <tr><td><code>privateKey</code></td><td>服务端：用 <code>xray x25519</code> 生成</td></tr>
+                <tr><td><code>shortId</code></td><td>服务端：作为连接标识，匹配不上则回落</td></tr>
+            </tbody>
+        </table>
+        <blockquote>
+            <p>Reality 当前需要服务端配合 <code>xray</code> 或 <code>v2ray-core v5+</code> 使用。<strong>Reality 是无证书的 TLS 替代方案</strong>，被视为目前最安全的传输方式。</p>
+        </blockquote>
+
+        <hr>
+
+        <h3 id="配置-七-mux-多路复用">七、Mux 多路复用</h3>
+        <pre><code class="language-json">"outbounds": [{
+  "mux": {
+    "enabled": true,
+    "concurrency": 8
+  }
+}]
+</code></pre>
+        <table>
+            <thead><tr><th>字段</th><th>默认值</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>enabled</code></td><td><code>false</code></td><td>是否启用多路复用</td></tr>
+                <tr><td><code>concurrency</code></td><td><code>8</code></td><td>单个 TCP 连接上最大并发复用数（建议 4~16）</td></tr>
+            </tbody>
+        </table>
+        <blockquote>
+            <p>Mux 用一条 TCP 连接承载多个虚拟连接，减少握手开销。但在高延迟网络下可能降低吞吐。建议<strong>先关着</strong>，只有遇到大量短连接场景（如浏览器上网）才考虑开启。</p>
+        </blockquote>
+
+        <hr>
+
+        <h3 id="配置-八-routing-路由">八、Routing 路由</h3>
+        <p>路由是整个配置中最核心的流量控制子系统。</p>
+        <pre><code class="language-json">{
+  "routing": {
+    "domainStrategy": "AsIs",
+    "domainMatcher": "linear",
+    "balancers": [],
+    "rules": [],
+    "settings": {
+      "domainStrategy": "AsIs",
+      "domainMatcher": "linear",
+      "rules": []
+    }
+  }
+}
+</code></pre>
+        <blockquote>
+            <p><strong>注意</strong>：v4 格式中路由配置在 <code>routing.settings.rules</code> 下。<code>routing.rules</code>（顶层）是 v5 格式。当前项目使用 v4 格式，请使用 <code>routing.settings.rules</code>。</p>
+        </blockquote>
+
+        <h4>8.1 域名策略</h4>
+        <table>
+            <thead><tr><th><code>domainStrategy</code></th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>"AsIs"</code></td><td>不解析，直接匹配域名原文（最快）</td></tr>
+                <tr><td><code>"IPIfNonMatch"</code></td><td>如果域名规则未匹配，则解析为 IP 再匹配 IP 规则</td></tr>
+                <tr><td><code>"IPOnDemand"</code></td><td>所有域名先解析 IP，再匹配 IP 规则</td></tr>
+            </tbody>
+        </table>
+        <blockquote>
+            <p>推荐 <code>"AsIs"</code>。如果大量使用 <code>geoip:</code> 规则才考虑 <code>"IPIfNonMatch"</code>。</p>
+        </blockquote>
+
+        <h4>8.2 域名匹配器</h4>
+        <table>
+            <thead><tr><th><code>domainMatcher</code></th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>"linear"</code></td><td>线性匹配，简单稳定（默认）</td></tr>
+                <tr><td><code>"mph"</code></td><td>最小完美哈希，大量域名规则时内存更优</td></tr>
+            </tbody>
+        </table>
+
+        <h4>8.3 路由规则</h4>
+        <p>每条规则按<strong>从上到下</strong>顺序匹配，匹配后停止。</p>
+        <pre><code class="language-json">"rules": [
+  {
+    "type": "field",
+    "domain": ["geosite:cn", "domain:baidu.com"],
+    "ip": ["geoip:private", "geoip:cn"],
+    "port": "0-100",
+    "network": "tcp",
+    "source": ["10.0.0.0/8"],
+    "protocol": ["http", "bittorrent"],
+    "inboundTag": ["socks-in"],
+    "attrs": "...",
+    "outboundTag": "direct",
+    "balancerTag": ""
+  }
+]
+</code></pre>
+        <table>
+            <thead><tr><th>匹配字段</th><th>格式</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>domain</code></td><td>数组</td><td>域名规则（支持 <code>domain:</code> / <code>geosite:</code> / <code>regexp:</code> 前缀）</td></tr>
+                <tr><td><code>ip</code></td><td>数组</td><td>IP 规则（支持 <code>geoip:</code> 前缀）</td></tr>
+                <tr><td><code>port</code></td><td>字符串</td><td>端口或端口范围 <code>"0-1024"</code> / <code>"80,443"</code></td></tr>
+                <tr><td><code>network</code></td><td>字符串</td><td><code>"tcp"</code> / <code>"udp"</code></td></tr>
+                <tr><td><code>source</code></td><td>数组</td><td>源 IP 段</td></tr>
+                <tr><td><code>protocol</code></td><td>数组</td><td><code>"http"</code> / <code>"tls"</code> / <code>"bittorrent"</code></td></tr>
+                <tr><td><code>inboundTag</code></td><td>数组</td><td>按入站标签匹配</td></tr>
+                <tr><td><code>outboundTag</code></td><td>字符串</td><td>匹配后使用的出站</td></tr>
+                <tr><td><code>balancerTag</code></td><td>字符串</td><td>匹配后使用的负载均衡器</td></tr>
+            </tbody>
+        </table>
+
+        <h5>域名规则前缀</h5>
+        <table>
+            <thead><tr><th>前缀</th><th>示例</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>domain:</code></td><td><code>domain:google.com</code></td><td>精确匹配 <code>google.com</code> 及其子域名</td></tr>
+                <tr><td><code>geosite:</code></td><td><code>geosite:cn</code></td><td>从 <code>geosite.dat</code> 读取域名列表</td></tr>
+                <tr><td><code>regexp:</code></td><td><code>regexp:.*\.googlevideo\.com</code></td><td>正则匹配</td></tr>
+                <tr><td>无前缀</td><td><code>baidu.com</code></td><td>等同 <code>domain:</code> 精确匹配</td></tr>
+                <tr><td>纯文本子串</td><td><code>"sina.com"</code></td><td>匹配包含该子串的域名</td></tr>
+            </tbody>
+        </table>
+
+        <h4>8.4 负载均衡 (Balancers)</h4>
+        <pre><code class="language-json">{
+  "routing": {
+    "settings": {
+      "balancers": [
+        {
+          "tag": "balancer1",
+          "selector": ["proxy-usa-01", "proxy-eu-01"],
+          "strategy": {
+            "type": "roundRobin"
+          }
+        }
+      ]
+    }
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th>策略</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>"roundRobin"</code></td><td>轮询</td></tr>
+                <tr><td><code>"leastPing"</code></td><td>选延迟最低的出站</td></tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <h3 id="配置-九-policy-策略">九、Policy 策略</h3>
+        <pre><code class="language-json">{
+  "policy": {
+    "levels": {
+      "0": {
+        "handshake": 4,
+        "connIdle": 300,
+        "uplinkOnly": 2,
+        "downlinkOnly": 5,
+        "statsUserUplink": false,
+        "statsUserDownlink": false,
+        "bufferSize": 10240
+      }
+    },
+    "system": {
+      "statsInboundUplink": false,
+      "statsInboundDownlink": false,
+      "statsOutboundUplink": false,
+      "statsOutboundDownlink": false
+    }
+  }
+}
+</code></pre>
+        <table>
+            <thead><tr><th>参数</th><th>默认值</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>handshake</code></td><td><code>4</code> (秒)</td><td>连接建立超时</td></tr>
+                <tr><td><code>connIdle</code></td><td><code>300</code> (秒)</td><td>连接空闲超时</td></tr>
+                <tr><td><code>uplinkOnly</code></td><td><code>2</code> (秒)</td><td>等待上行关闭的超时</td></tr>
+                <tr><td><code>downlinkOnly</code></td><td><code>5</code> (秒)</td><td>等待下行关闭的超时</td></tr>
+                <tr><td><code>statsUserUplink</code></td><td><code>false</code></td><td>是否统计用户上行流量（配合 API）</td></tr>
+                <tr><td><code>statsUserDownlink</code></td><td><code>false</code></td><td>是否统计用户下行流量（配合 API）</td></tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <h3 id="配置-十-stats-api-统计与远程管理">十、Stats &amp; API 统计与远程管理</h3>
+        <pre><code class="language-json">{
+  "stats": {},
+
+  "api": {
+    "tag": "api",
+    "services": ["HandlerService", "LoggerService", "StatsService"]
+  },
+
+  "policy": {
+    "system": {
+      "statsInboundUplink": true,
+      "statsInboundDownlink": true
+    }
+  },
+
+  "inbounds": [
+    {
+      "listen": "127.0.0.1",
+      "port": 62789,
+      "protocol": "dokodemo-door",
+      "settings": { "address": "127.0.0.1" },
+      "tag": "api"
+    }
+  ]
+}
+</code></pre>
+        <blockquote>
+            <p>启用后可通过 gRPC API 获取流量统计数据，适合需要流量计费的场景。</p>
+        </blockquote>
+
+        <hr>
+
+        <h3 id="配置-十一-常见配置模式">十一、常见配置模式</h3>
+
+        <h4>模式 A：SOCKS5 客户端（最简单的代理上网）</h4>
+        <pre><code class="language-json">{
+  "inbounds": [{
+    "port": 10808,
+    "listen": "127.0.0.1",
+    "protocol": "socks",
+    "settings": { "udp": true },
+    "tag": "socks-in"
+  }],
+  "outbounds": [
+    {
+      "protocol": "vmess",
+      "settings": {
+        "vnext": [{
+          "address": "your-server.com",
+          "port": 443,
+          "users": [{ "id": "your-uuid", "security": "auto" }]
+        }]
+      },
+      "streamSettings": { "network": "ws", "security": "tls", "wsSettings": { "path": "/ws" } },
+      "tag": "proxy"
+    },
+    {
+      "protocol": "freedom",
+      "tag": "direct"
+    }
+  ]
+}
+</code></pre>
+        <blockquote>
+            <p>所有流量都走代理（Freedom 未分到规则），适合只需要"开箱即用"的场景。</p>
+        </blockquote>
+
+        <h4>模式 B：分流代理（国内直连 + 国外代理）</h4>
+        <pre><code class="language-json">{
+  "inbounds": [{
+    "port": 10808, "listen": "127.0.0.1", "protocol": "socks", "settings": { "udp": true }, "tag": "socks-in"
+  }],
+  "outbounds": [
+    {
+      "protocol": "vmess",
+      "settings": {
+        "vnext": [{
+          "address": "your-server.com", "port": 443,
+          "users": [{ "id": "your-uuid", "security": "auto" }]
+        }]
+      },
+      "streamSettings": { "network": "ws", "security": "tls", "wsSettings": { "path": "/ws" } },
+      "tag": "proxy"
+    },
+    { "protocol": "freedom", "tag": "direct" }
+  ],
+  "routing": {
+    "settings": {
+      "domainStrategy": "AsIs",
+      "rules": [
+        { "ip": ["geoip:private"], "outboundTag": "direct", "type": "field" },
+        { "domain": ["geosite:cn"], "outboundTag": "direct", "type": "field" },
+        { "ip": ["geoip:cn"], "outboundTag": "direct", "type": "field" }
+      ]
+    }
+  }
+}
+</code></pre>
+        <blockquote>
+            <p>国内域名/IP 走直连，其余走代理。需要 <code>geoip.dat</code> 和 <code>geosite.dat</code>。</p>
+        </blockquote>
+
+        <h4>模式 C：VLESS + Reality（现代推荐方案）</h4>
+        <pre><code class="language-json">{
+  "inbounds": [{
+    "port": 10808, "listen": "127.0.0.1", "protocol": "socks", "settings": { "udp": true }, "tag": "socks-in"
+  }],
+  "outbounds": [
+    {
+      "protocol": "vless",
+      "settings": {
+        "vnext": [{
+          "address": "your-server.com",
+          "port": 443,
+          "users": [{ "id": "your-uuid", "encryption": "none", "flow": "xtls-rprx-vision" }]
+        }]
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "serverName": "www.microsoft.com",
+          "fingerprint": "chrome",
+          "publicKey": "server-public-key",
+          "shortId": "0123456789ab",
+          "spiderX": "/"
+        }
+      },
+      "tag": "proxy"
+    },
+    { "protocol": "freedom", "tag": "direct" }
+  ]
+}
+</code></pre>
+
+        <h4>模式 D：透明代理（配合 iptables）</h4>
+        <pre><code class="language-json">{
+  "inbounds": [
+    {
+      "port": 12345,
+      "listen": "0.0.0.0",
+      "protocol": "dokodemo-door",
+      "settings": { "network": "tcp,udp", "followRedirect": true },
+      "sniffing": { "enabled": true, "destOverride": ["http", "tls"] },
+      "tag": "tproxy-in"
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "vmess",
+      "settings": {
+        "vnext": [{
+          "address": "your-server.com", "port": 443,
+          "users": [{ "id": "your-uuid", "security": "auto" }]
+        }]
+      },
+      "streamSettings": { "network": "ws", "security": "tls", "wsSettings": { "path": "/ws" } },
+      "tag": "proxy"
+    },
+    { "protocol": "freedom", "tag": "direct" }
+  ],
+  "routing": {
+    "settings": {
+      "rules": [
+        { "type": "field", "inboundTag": ["tproxy-in"], "domain": ["geosite:cn"], "outboundTag": "direct" },
+        { "type": "field", "inboundTag": ["tproxy-in"], "outboundTag": "proxy" }
+      ]
+    }
+  }
+}
+</code></pre>
+        <blockquote>
+            <p>配合 iptables TPROXY 规则实现透明代理，设备不需单独配置。</p>
+        </blockquote>
+
+        <hr>
+
+        <h3 id="配置-十二-字段名兼容性对照">十二、字段名兼容性对照</h3>
+        <p>本项目使用 <strong>v4 JSON 格式</strong>，与 <code>v2fly/v2fly-core</code> Docker 镜像一致。以下是 v4 与 v5 JSONv5 的字段对应关系：</p>
+        <table>
+            <thead><tr><th>v4 (本项目)</th><th>v5 JSONv5 (不兼容)</th></tr></thead>
+            <tbody>
+                <tr><td><code>"inbounds"</code></td><td><code>"inbounds"</code></td></tr>
+                <tr><td><code>"outbounds"</code></td><td><code>"outbounds"</code></td></tr>
+                <tr><td><code>"routing"</code></td><td><code>"router"</code></td></tr>
+                <tr><td><code>"routing.settings"</code></td><td><code>"router"</code> (顶层)</td></tr>
+                <tr><td><code>"streamSettings.network"</code></td><td><code>"transport"</code> (位于各 outbound 下)</td></tr>
+                <tr><td><code>"streamSettings.security"</code></td><td><code>"securitySettings"</code></td></tr>
+                <tr><td><code>"wsSettings"</code></td><td><code>"transportSettings"</code></td></tr>
+                <tr><td><code>"tlsSettings"</code></td><td><code>"securitySettings"</code></td></tr>
+                <tr><td><code>"kcpSettings"</code></td><td>System 下移</td></tr>
+                <tr><td><code>"routing.settings.rules[].ip"</code></td><td><code>"rules[].geoip"</code></td></tr>
+            </tbody>
+        </table>
+        <blockquote>
+            <p><strong>注意</strong>：如果不小心写了 v5 字段名，引擎会尝试回退加载 <code>jsonv5</code> 解析器，但兼容性有限，建议始终使用 v4 格式。</p>
+        </blockquote>
+
+        <h2 id="api-接口">API 接口</h2>
+        <table>
+            <thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>GET</code></td><td><code>/api/status</code></td><td>获取运行状态和版本</td></tr>
+                <tr><td><code>GET</code></td><td><code>/api/config</code></td><td>读取当前配置</td></tr>
+                <tr><td><code>PUT</code></td><td><code>/api/config</code></td><td>更新配置（自动重启）</td></tr>
+                <tr><td><code>POST</code></td><td><code>/api/start</code></td><td>启动 V2Ray</td></tr>
+                <tr><td><code>POST</code></td><td><code>/api/stop</code></td><td>停止 V2Ray</td></tr>
+                <tr><td><code>POST</code></td><td><code>/api/restart</code></td><td>重启 V2Ray</td></tr>
+            </tbody>
+        </table>
+        <p>所有 API 均返回 JSON，支持 CORS 跨域。</p>
+
+        <h3>示例</h3>
+        <pre><code class="language-bash"># 查看状态
+curl http://localhost:8080/api/status
+
+# 更新配置
+curl -X PUT http://localhost:8080/api/config \
+  -H 'Content-Type: application/json' \
+  -d '{"config": "{...}"}'
+
+# 重启
+curl -X POST http://localhost:8080/api/restart
+</code></pre>
+
+        <h2 id="项目结构">项目结构</h2>
+        <pre><code>.
+├── main.go              # 入口，解析参数、启动 HTTP 服务
+├── core/
+│   └── engine.go        # V2Ray 核心生命周期管理
+├── api/
+│   └── handlers.go      # REST API 路由和处理器
+├── web/
+│   ├── index.html       # Web 管理界面（HTML 结构）
+│   ├── styles.css       # UI 样式（含浅色/深色主题）
+│   └── app.js           # 前端交互逻辑
+├── icons/
+│   ├── favicon-16x16.png
+│   ├── favicon-32x32.png
+│   └── favicon-48x48.png  # 网页 favicon 多尺寸图标
+├── config.example.json  # 脱敏后的示例配置文件
+├── config.json          # 实际配置文件（gitignore 不提交）
+├── geoip.dat            # IP 地理位置数据库（需自行下载）
+├── geosite.dat          # 域名分类数据库（需自行下载）
+└── go.mod               # Go 模块定义
+</code></pre>
+
+        <h2 id="常见问题">常见问题</h2>
+
+        <h3>配置加载失败：<code>unknown field</code></h3>
+        <p>配置文件使用了 V2Ray v5 JSONv5 格式的字段名（如 <code>transport</code>、<code>transportSettings</code>、<code>router</code>）。请使用 V2Ray v4 JSON 格式（<code>network</code>、<code>wsSettings</code>、<code>routing</code>），与官方 Docker 镜像保持一致。</p>
+
+        <h3>找不到 geoip.dat</h3>
+        <p>如果配置中使用了 <code>geoip:private</code> 等路由规则，必须下载 <code>geoip.dat</code> 到与可执行文件相同的目录。参考<a href="#快速开始">快速开始</a>中的下载命令。</p>
+
+        <h3>端口被占用</h3>
+        <p>默认 SOCKS 入站使用 1080 端口。如果端口冲突，在 Web 界面中修改配置文件的 <code>inbounds[].port</code> 即可。</p>
+
+        <h2 id="技术栈">技术栈</h2>
+        <ul>
+            <li><strong>后端</strong>: Go + <a href="https://github.com/v2fly/v2ray-core">v2ray-core v5</a></li>
+            <li><strong>前端</strong>: 纯 HTML/CSS/JS（零依赖）</li>
+            <li><strong>协议支持</strong>: VMess、VLESS、Trojan、Shadowsocks 等（由 v2ray-core 提供）</li>
+        </ul>
+
+        <h2 id="license">License</h2>
+        <p>MIT</p>
+    </main>
+</div>
+
+<script>
+    // 滚动时高亮当前章节
+    (function() {
+        var tocLinks = document.querySelectorAll('#toc a');
+        if (!tocLinks.length) return;
+
+        var idToLink = {};
+        tocLinks.forEach(function(link) {
+            var id = link.getAttribute('href').slice(1);
+            idToLink[id] = link;
+        });
+
+        var headings = Array.from(document.querySelectorAll('.main [id]'))
+            .filter(function(el) { return idToLink[el.id]; });
+
+        function update() {
+            var scrollY = window.scrollY + 100;
+            var active = null;
+            for (var i = 0; i < headings.length; i++) {
+                if (headings[i].offsetTop <= scrollY) {
+                    active = headings[i];
+                } else {
+                    break;
+                }
+            }
+            tocLinks.forEach(function(link) { link.classList.remove('active'); });
+            if (active && idToLink[active.id]) {
+                idToLink[active.id].classList.add('active');
+                // 让当前条目在 sidebar 中可见
+                var linkEl = idToLink[active.id];
+                var sidebar = document.querySelector('.sidebar');
+                if (sidebar && linkEl.offsetTop < sidebar.scrollTop) {
+                    sidebar.scrollTop = linkEl.offsetTop - 20;
+                } else if (sidebar && linkEl.offsetTop + linkEl.offsetHeight > sidebar.scrollTop + sidebar.clientHeight) {
+                    sidebar.scrollTop = linkEl.offsetTop + linkEl.offsetHeight - sidebar.clientHeight + 20;
+                }
+            }
+        }
+
+        window.addEventListener('scroll', update, { passive: true });
+        update();
+    })();
+</script>
+</body>
+</html>
