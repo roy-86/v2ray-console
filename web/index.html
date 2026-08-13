@@ -33,6 +33,7 @@
     </div>
   </div>
   <div class="header-right">
+    <a class="icon-btn" href="README.html" target="_blank" rel="noopener" title="查看帮助文档" aria-label="查看帮助文档">?</a>
     <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题" aria-label="切换主题">🌙</button>
     <button class="icon-btn" onclick="refreshConfig()" title="刷新配置" aria-label="刷新配置">↻</button>
   </div>
@@ -96,7 +97,12 @@
       <span class="hint" id="flowVizHint">默认全部走代理，按规则分流</span>
       <span class="flow-viz-arrow" id="flowVizArrow">▾</span>
     </div>
-    <div class="flow-viz-body" id="flowVizBody"></div>
+    <div class="flow-viz-body" id="flowVizBody">
+      <div class="flow-layer" id="flowLayerRouting">
+        <h3 class="flow-layer-title">流量走向</h3>
+        <div class="flow-canvas-host" id="flowCanvasRouting"></div>
+      </div>
+    </div>
   </section>
 
   <div class="card-header">

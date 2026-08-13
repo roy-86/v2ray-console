@@ -52,6 +52,7 @@
   --flow-proxy-bg: #e1d5e7;   --flow-proxy-br: #9673a6; --flow-proxy-fg: #442a56;
   --flow-block-bg: #f8d7da;   --flow-block-br: #c9737a; --flow-block-fg: #6b2229;
   --flow-target-bg: #2d3748;  --flow-target-br: #1a202c; --flow-target-fg: #ffffff;
+  --flow-balancer-bg: #ffe6cc; --flow-balancer-br: #d79b00; --flow-balancer-fg: #7a4500;
 
   --shadow-xs: 0 1px 2px rgba(15, 23, 41, .04);
   --shadow-sm: 0 1px 3px rgba(15, 23, 41, .06), 0 1px 2px rgba(15, 23, 41, .04);
@@ -123,6 +124,7 @@
   --flow-proxy-bg: rgba(150, 115, 166, .18); --flow-proxy-br: #9673a6; --flow-proxy-fg: #d3b8de;
   --flow-block-bg: rgba(201, 115, 122, .16); --flow-block-br: #b2626a; --flow-block-fg: #eaa5ab;
   --flow-target-bg: #e6edf3;  --flow-target-br: #adbac7; --flow-target-fg: #0d1117;
+  --flow-balancer-bg: rgba(215, 155, 0, .16); --flow-balancer-br: #d79b00; --flow-balancer-fg: #f0c674;
 
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, .2);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, .3), 0 1px 2px rgba(0, 0, 0, .2);
@@ -1323,6 +1325,46 @@ body {
   gap: 0;
 }
 
+/* —— 分层容器（第一层 / 第二层）—— */
+.flow-layers {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+}
+.flow-layer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.flow-layer + .flow-layer {
+  border-top: 1px dashed var(--border);
+  margin-top: 6px;
+  padding-top: 18px;
+}
+.flow-layer-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin: 0 0 12px 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+}
+.flow-layer-title::before {
+  content: "";
+  width: 3px;
+  height: 12px;
+  background: var(--text-muted);
+  border-radius: 2px;
+}
+#flowLayerBalancer .flow-layer-title::before { background: var(--flow-balancer-br); }
+#flowLayerBalancer .flow-layer-title { color: var(--flow-balancer-fg); }
+.flow-canvas-host { width: 100%; display: flex; flex-direction: column; align-items: center; }
+
 /* —— CSS Grid 画布 —— */
 .flow-canvas {
   display: grid;
@@ -1447,6 +1489,37 @@ body {
 }
 .flow-router-icon span { transform: rotate(-45deg); display: block; }
 
+/* —— 负载均衡器节点（橙色，介于路由与代理之间）——
+   默认与「入站」同高：align-self: center 不拉伸，宽度也走 .flow-node 默认
+   （120–190px）。仅当 selector 出站 ≥ 2 个（即堆叠场景）时挂 .is-stacked，
+   才让节点拉伸跨行变成「总线块」，与右侧各服务器节点（s1/s2…）右边缘对齐。 */
+.flow-node-balancer {
+  background: var(--flow-balancer-bg);
+  border-color: var(--flow-balancer-br);
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* 比「入站」矮 20px：把上下 padding 从 10px 减到 0px（-10×2），让节点更紧凑 */
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.flow-node-balancer.is-stacked {
+  align-self: stretch;
+}
+.flow-node-balancer .flow-node-title { color: var(--flow-balancer-fg); }
+.flow-node-balancer .flow-node-sub  { color: var(--flow-balancer-fg); opacity: .82; }
+.flow-balancer-icon {
+  display: inline-block;
+  font-size: 13px;
+  line-height: 1;
+  margin-right: 2px;
+  transform: translateY(-1px);
+}
+/* balancer 节点上的「扇出」标签 */
+.flow-node-balancer + .flow-arrow-r .flow-arrow-label,
+.flow-arrow-r.labeled.balancer .flow-arrow-label { color: var(--flow-balancer-br); }
+
 /* —— 规则组容器（对应 drawio 的虚线分组框）—— */
 .flow-rules-stack {
   display: flex;
@@ -1485,6 +1558,7 @@ body {
   white-space: nowrap;
 }
 .flow-rules-stack.is-proxy-path .flow-rules-label { color: var(--flow-proxy-br); }
+
 .flow-rules-stack.is-block-path .flow-rules-label { color: var(--flow-block-br); }
 
 /* —— 规则节点 —— */
@@ -1500,19 +1574,22 @@ body {
 }
 .flow-rule-node:hover { transform: translateX(2px); box-shadow: var(--shadow-xs); }
 .flow-rule-num {
+  display: block;
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .04em;
   color: var(--flow-direct-fg);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 .flow-rule-cond {
+  display: block;
   font-size: 10px;
   font-weight: 500;
   color: var(--text);
   line-height: 1.4;
   word-break: break-word;
+  overflow-wrap: anywhere;
 }
 /* 代理路径下的规则改紫 */
 .is-proxy-path .flow-rule-node { border-color: var(--flow-proxy-br); border-left-color: var(--flow-proxy-br); }
@@ -1620,7 +1697,6 @@ body {
   height: 2px;
   background: var(--border-strong);
   position: relative;
-  z-index: 0;
   align-self: center;
 }
 .flow-arrow-r::after {
@@ -1641,6 +1717,8 @@ body {
 .flow-arrow-r.proxy::after { border-left-color: var(--flow-proxy-br); }
 .flow-arrow-r.block { background: var(--flow-block-br); }
 .flow-arrow-r.block::after { border-left-color: var(--flow-block-br); }
+.flow-arrow-r.balancer { background: var(--flow-balancer-br); }
+.flow-arrow-r.balancer::after { border-left-color: var(--flow-balancer-br); }
 
 /* 带文字标签的箭头（命中 / 未命中）*/
 .flow-arrow-r.labeled { width: 40px; }
@@ -1657,10 +1735,77 @@ body {
   background: var(--bg-elevated);
   padding: 0 3px;
   border-radius: 2px;
+  z-index: 3;
 }
 .flow-arrow-r.direct .flow-arrow-label { color: var(--flow-direct-br); }
 .flow-arrow-r.proxy .flow-arrow-label { color: var(--flow-proxy-br); }
 .flow-arrow-r.block .flow-arrow-label { color: var(--flow-block-br); }
+.flow-arrow-r.balancer .flow-arrow-label { color: var(--flow-balancer-br); }
+
+/* 跨行水平箭头（堆叠 balancer 的 balancer→s2 连接）：本身不画线，
+   只负责承载标签 + 占位（r1..rN 跨行单元格，让 JS 用绝对定位的
+   .flow-bypass-elbow 折线画出从 balancer 右边缘连到 s2 左边缘的水平线）。
+   这样做可以避免 grid column-gap（10px）在视觉上断开连线。
+   选择器用 .flow-arrow-r.flow-arrow-r-bypass（双类），
+   与 .flow-arrow-r.proxy / .flow-arrow-r.direct 等着色类同样 (0,2,0)；
+   放在那些着色规则之后，才能保证 background: none 真正压过着色背景。 */
+.flow-arrow-r.flow-arrow-r-bypass {
+  align-self: end;
+  margin-bottom: 24px;
+  background: none;
+  pointer-events: none;
+}
+.flow-arrow-r.flow-arrow-r-bypass::after { display: none; }
+
+/* —— 垂直向下箭头（堆叠的服务器节点之间）—— */
+.flow-arrow-d {
+  width: 2px;
+  height: 26px;
+  background: var(--border-strong);
+  position: relative;
+  justify-self: center;
+  align-self: center;
+}
+.flow-arrow-d::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -1px;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--border-strong);
+}
+.flow-arrow-d.direct { background: var(--flow-direct-br); }
+.flow-arrow-d.direct::after { border-top-color: var(--flow-direct-br); }
+.flow-arrow-d.proxy  { background: var(--flow-proxy-br); }
+.flow-arrow-d.proxy::after  { border-top-color: var(--flow-proxy-br); }
+.flow-arrow-d.block  { background: var(--flow-block-br); }
+.flow-arrow-d.block::after  { border-top-color: var(--flow-block-br); }
+.flow-arrow-d.balancer { background: var(--flow-balancer-br); }
+.flow-arrow-d.balancer::after { border-top-color: var(--flow-balancer-br); }
+
+.flow-arrow-d.labeled { height: 40px; }
+.flow-arrow-d .flow-arrow-label {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  white-space: nowrap;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  padding: 0 3px;
+  border-radius: 2px;
+  z-index: 3;
+}
+.flow-arrow-d.direct .flow-arrow-label   { color: var(--flow-direct-br); }
+.flow-arrow-d.proxy .flow-arrow-label    { color: var(--flow-proxy-br); }
+.flow-arrow-d.block .flow-arrow-label    { color: var(--flow-block-br); }
+.flow-arrow-d.balancer .flow-arrow-label { color: var(--flow-balancer-br); }
 
 /* —— 路由下方竖向 bus（多出站时连接各行）—— */
 /* —— 路由下方的分叉锚点 ——
@@ -1725,6 +1870,7 @@ body {
 .flow-arrow-merge.direct .flow-arrow-label { color: var(--flow-direct-br); }
 .flow-arrow-merge.proxy  .flow-arrow-label { color: var(--flow-proxy-br); }
 .flow-arrow-merge.block  .flow-arrow-label { color: var(--flow-block-br); }
+.flow-arrow-merge.balancer .flow-arrow-label { color: var(--flow-balancer-br); }
 
 /* —— 下方各行 → 唯一终点节点的 L 形折线 ——
    与 .flow-bus-elbow 同样是「单元素一条线」，但转角在右下、箭头朝上 */
@@ -1747,37 +1893,57 @@ body {
   border-bottom: 6px solid var(--elbow-color, var(--border-strong));
 }
 
+/* —— 堆叠 balancer 的 balancer→s2 折线 ——
+   一根从 balancer 右边缘横穿列间隙、连到 s2 左边缘的水平线，
+   线高 = s2 节点中心线高度，避免被 grid column-gap 视觉断开 */
+.flow-bypass-elbow {
+  position: absolute;
+  height: 0;
+  border-top: 2px solid var(--elbow-color, var(--border-strong));
+  pointer-events: none;
+  z-index: 0;
+}
+.flow-bypass-elbow::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: -6px;
+  width: 0; height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid var(--elbow-color, var(--border-strong));
+}
+
 /* 被 L 折线取代的分支箭头：线与箭头都隐去，只保留其上的文字标签 */
 .flow-arrow-r.is-superseded { background: none; }
 .flow-arrow-r.is-superseded::after { display: none; }
 .flow-arrow-r.is-superseded .flow-arrow-label { z-index: 2; }
 
-/* —— 图例（对应 drawio 底部图例框）—— */
+/* —— 图例（位于整张画布下方，独立一行，横向一一排开）—— */
 .flow-legend {
   display: flex;
+  flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 18px;
-  margin-top: 18px;
-  padding: 10px 14px;
+  justify-content: center;
+  gap: 10px 24px;
+  align-self: stretch;        /* 撑满 .flow-canvas-host 的横向宽度 */
+  width: 100%;
+  margin: 14px 0 0;
+  padding: 12px 18px;
   border: 1px dashed var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
-  max-width: 100%;
-}
-.flow-legend-title {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  letter-spacing: .04em;
+  box-sizing: border-box;
 }
 .flow-legend-item {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-secondary);
   line-height: 1.4;
+  white-space: nowrap;
 }
 .flow-legend-swatch {
   width: 24px;
@@ -1789,6 +1955,7 @@ body {
 .flow-legend-swatch.direct { background: var(--flow-direct-bg); border-color: var(--flow-direct-br); }
 .flow-legend-swatch.proxy  { background: var(--flow-proxy-bg);  border-color: var(--flow-proxy-br); }
 .flow-legend-swatch.block  { background: var(--flow-block-bg);  border-color: var(--flow-block-br); }
+.flow-legend-swatch.balancer { background: var(--flow-balancer-bg); border-color: var(--flow-balancer-br); }
 
 /* —— 提示文字 —— */
 .flow-viz-empty {
@@ -1806,7 +1973,7 @@ body {
   .flow-rules-stack { padding: 8px 6px 6px; }
   .flow-arrow-r { width: 18px; }
   .flow-arrow-r.labeled { width: 30px; }
-  .flow-legend { gap: 6px 12px; padding: 8px 10px; }
+  .flow-legend { gap: 8px 16px; padding: 10px 12px; }
 }
 
 
