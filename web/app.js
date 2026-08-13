@@ -2038,6 +2038,7 @@ function renderFlowCanvas(host, inbs, rules, rows, hasRouting, balancers, obs) {
     html += '<div class="flow-arrow-r ' + pathCls + '" style="grid-column:8;grid-row:' + rowStart + '"></div>';
 
     // 节点（出站 或 balancer）
+    const balGroupId = isStackedBalancer ? ('balgrp-' + i) : '';
     if (isBalancer) {
       const bal = r.bal;
       const strat = (bal.strategy && bal.strategy.type) || 'roundRobin';
@@ -2045,7 +2046,7 @@ function renderFlowCanvas(host, inbs, rules, rows, hasRouting, balancers, obs) {
       const spanRows = showStack
         ? rowStart + ' / ' + (rowStart + (r.selectorItems || []).length)
         : rowStart;
-      html += '<div class="flow-node flow-node-balancer' + (showStack ? ' is-stacked' : '') + ' ' + pathCls + '" style="grid-column:' + outCol + ';grid-row:' + spanRows + '">';
+      html += '<div class="flow-node flow-node-balancer' + (showStack ? ' is-stacked' : '') + ' ' + pathCls + '"' + (balGroupId ? ' data-bal-group="' + balGroupId + '"' : '') + ' style="grid-column:' + outCol + ';grid-row:' + spanRows + '">';
       html += '<div class="flow-node-title"><span class="flow-balancer-icon">⚖</span>' + esc(bal.tag || '—') + '</div>';
       const subText = strategyLabel(strat) + ' · ' + r.selectorItems.length + ' 个出站';
       html += '<div class="flow-node-sub">' + subText + '</div>';
@@ -2077,10 +2078,10 @@ function renderFlowCanvas(host, inbs, rules, rows, hasRouting, balancers, obs) {
       }
       return pathCls;
     };
-    const renderDestNode = (dest, gridCol, gridRow, extraCls) => {
+    const renderDestNode = (dest, gridCol, gridRow, extraCls, dataAttr) => {
       const isTarget = (dest.cls || '').indexOf('target') >= 0;
       const anchor = (isTarget && !targetAnchored) ? ' is-target-anchor' : '';
-      html += '<div class="flow-node flow-node-dest ' + destClsOf(dest) + anchor + (extraCls || '') + '" style="grid-column:' + gridCol + ';grid-row:' + gridRow + '">';
+      html += '<div class="flow-node flow-node-dest ' + destClsOf(dest) + anchor + (extraCls || '') + '"' + (dataAttr || '') + ' style="grid-column:' + gridCol + ';grid-row:' + gridRow + '">';
       html += '<div class="flow-node-title">' + esc(dest.text) + '</div>';
       html += '</div>';
       if (isTarget) {
@@ -2105,7 +2106,7 @@ function renderFlowCanvas(host, inbs, rules, rows, hasRouting, balancers, obs) {
               '" style="grid-column:' + (stackCol - 1) + ';grid-row:' + rowStart + '">';
       if (arrow1) html += '<span class="flow-arrow-label">' + esc(arrow1) + '</span>';
       html += '</div>';
-      renderDestNode(dests[0], stackCol, rowStart);
+      renderDestNode(dests[0], stackCol, rowStart, '', ' data-bal-group="' + balGroupId + '"');
 
       if (!targetMerged) {
         const tArrow = targetDest.arrow || '';
@@ -2123,7 +2124,7 @@ function renderFlowCanvas(host, inbs, rules, rows, hasRouting, balancers, obs) {
                 '" style="grid-column:' + (stackCol - 1) + ';grid-row:' + rowStart + '/' + (rowStart + 2) + '">';
         if (linkArrow) html += '<span class="flow-arrow-label">' + esc(linkArrow) + '</span>';
         html += '</div>';
-        renderDestNode(dests[1], stackCol, rowStart + 1);
+        renderDestNode(dests[1], stackCol, rowStart + 1, '', ' data-bal-group="' + balGroupId + '"');
       }
 
       for (let si = 2; si < servers.length; si++) {
@@ -2135,7 +2136,7 @@ function renderFlowCanvas(host, inbs, rules, rows, hasRouting, balancers, obs) {
                 '" style="grid-column:' + linkCol + ';grid-row:' + (sRow - 1) + '/' + sRow + '">';
         if (vArrow) html += '<span class="flow-arrow-label">' + esc(vArrow) + '</span>';
         html += '</div>';
-        renderDestNode(sd, stackCol, sRow);
+        renderDestNode(sd, stackCol, sRow, '', ' data-bal-group="' + balGroupId + '"');
       }
 
       if (targetMerged) {
@@ -2300,6 +2301,50 @@ function renderFlowCanvas(host, inbs, rules, rows, hasRouting, balancers, obs) {
         canvas.appendChild(line);
       });
     }
+  }
+
+  // 堆叠 balancer + 其 selector 出站服务器 用虚线框圈起，表示逻辑上是一个整体。
+  // 目标网站节点不带 data-bal-group，因此被排除在外。包围盒由各节点的实际矩形
+  // 取并集得到（与 elbow 折线同套坐标换算），画在 z-index:0 层，置于节点下方。
+  {
+    const groups = {};
+    canvas.querySelectorAll('[data-bal-group]').forEach(el => {
+      const g = el.getAttribute('data-bal-group');
+      (groups[g] = groups[g] || []).push(el);
+    });
+    const cRect = canvas.getBoundingClientRect();
+    const ox = canvas.scrollLeft - cRect.left;
+    const oy = canvas.scrollTop - cRect.top;
+    Object.keys(groups).forEach(g => {
+      const els = groups[g];
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      els.forEach(el => {
+        const r = el.getBoundingClientRect();
+        if (!r.width && !r.height) return;
+        minX = Math.min(minX, r.left + ox);
+        minY = Math.min(minY, r.top + oy);
+        maxX = Math.max(maxX, r.right + ox);
+        maxY = Math.max(maxY, r.bottom + oy);
+      });
+      if (minX === Infinity) return;
+      const pad = 9;
+      // 钳制到画布范围内，避免 balancer 处于首行时虚线框上/左边框溢出画布。
+      // 含 1.5px 边框宽度的安全余量，保证边框整体落在画布内。
+      const bw = 1.5;
+      let bx = minX - pad;
+      let by = minY - pad;
+      let bwBox = maxX - minX + pad * 2;
+      let bhBox = maxY - minY + pad * 2;
+      if (bx < bw) { bwBox += bx - bw; bx = bw; }
+      if (by < bw) { bhBox += by - bw; by = bw; }
+      const box = document.createElement('span');
+      box.className = 'flow-bal-group-box';
+      box.style.left = bx + 'px';
+      box.style.top = by + 'px';
+      box.style.width = bwBox + 'px';
+      box.style.height = bhBox + 'px';
+      canvas.appendChild(box);
+    });
   }
 }
 function elbowColorFor(el) {

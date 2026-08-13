@@ -1520,6 +1520,20 @@ body {
 .flow-node-balancer + .flow-arrow-r .flow-arrow-label,
 .flow-arrow-r.labeled.balancer .flow-arrow-label { color: var(--flow-balancer-br); }
 
+/* —— 堆叠 balancer + selector 出站服务器 的逻辑分组虚线框 ——
+   由 JS 在渲染后用 getBoundingClientRect 取并集算包围盒、绝对定位画出。
+   z-index:0 让它落在节点（z-index:1）之下；颜色用 balancer 橙，半透明填充
+   只做视觉提示，不遮挡内部节点。 */
+.flow-bal-group-box {
+  position: absolute;
+  border: 1.5px dashed var(--flow-balancer-br);
+  border-radius: var(--radius-md);
+  background: transparent;
+  pointer-events: none;
+  z-index: 0;
+  box-sizing: border-box;
+}
+
 /* —— 规则组容器（对应 drawio 的虚线分组框）—— */
 .flow-rules-stack {
   display: flex;
