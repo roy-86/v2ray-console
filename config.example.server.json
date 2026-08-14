@@ -12,7 +12,7 @@
         "settings": {
             "clients": [
                 {
-                    "id": "3feb637f-c784-4ca7-8221-9131756ebef7", 
+                    "id": "your-uuid-here",
                     "level": 0,
                     "alterId": 64
                 }

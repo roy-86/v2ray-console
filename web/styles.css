@@ -1505,7 +1505,12 @@ body {
   padding-bottom: 0;
 }
 .flow-node-balancer.is-stacked {
-  align-self: stretch;
+  /* 不拉伸：在跨行区间纵向居中，完整落在虚线分组框内并留出留白。
+     右边缘与服务器列的对齐由 grid 列定位决定，与是否拉伸无关。
+     上下各加 25px 内边距（+50px 总高度），让节点不至于过矮。 */
+  align-self: center;
+  padding-top: 60px;
+  padding-bottom: 60px;
 }
 .flow-node-balancer .flow-node-title { color: var(--flow-balancer-fg); }
 .flow-node-balancer .flow-node-sub  { color: var(--flow-balancer-fg); opacity: .82; }
@@ -1532,6 +1537,15 @@ body {
   pointer-events: none;
   z-index: 0;
   box-sizing: border-box;
+}
+
+/* 堆叠 balancer 行的 r2 镜像：min-height = router 节点高度，让 r2 与 r1 等高 */
+.flow-row-mirror {
+  visibility: hidden;
+  pointer-events: none;
+  align-self: stretch;
+  justify-self: stretch;
+  width: 1px;
 }
 
 /* —— 规则组容器（对应 drawio 的虚线分组框）—— */

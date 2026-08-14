@@ -2118,10 +2118,12 @@ function renderFlowCanvas(host, inbs, rules, rows, hasRouting, balancers, obs) {
       }
 
       if (servers.length >= 2) {
+        // s2 箭头占 r2 单行（与 s1 同款 flow-arrow-r.labeled，自身画 40px 水平线 + 标签），
+        // 不再跨行 + bypass + elbow 折线，保证与上方 s1 箭头长度、字与箭头间隙完全一致。
         const linkArrow = dests[1].arrow || '';
         const linkSeg = segClsOf(dests[1]);
-        html += '<div class="flow-arrow-r flow-arrow-r-bypass ' + linkSeg + (linkArrow ? ' labeled' : '') +
-                '" style="grid-column:' + (stackCol - 1) + ';grid-row:' + rowStart + '/' + (rowStart + 2) + '">';
+        html += '<div class="flow-arrow-r ' + linkSeg + (linkArrow ? ' labeled' : '') +
+                '" style="grid-column:' + (stackCol - 1) + ';grid-row:' + (rowStart + 1) + '">';
         if (linkArrow) html += '<span class="flow-arrow-label">' + esc(linkArrow) + '</span>';
         html += '</div>';
         renderDestNode(dests[1], stackCol, rowStart + 1, '', ' data-bal-group="' + balGroupId + '"');
@@ -2206,6 +2208,29 @@ function renderFlowCanvas(host, inbs, rules, rows, hasRouting, balancers, obs) {
   const canvas = host.querySelector('.flow-canvas');
   if (!canvas) return;
 
+  // 堆叠 balancer 行：r1 高度被 router 节点（col 5）撑到 router.h，r2 没有高 item
+  // 撑高 track，导致 r1 ≫ r2、s2 dest 居中后贴 r2 顶。r1/r2 等高由 r2 col 9 的镜像
+  // spacer（min-height = router.h）保证（s1/s2 dest 居中后关于虚框中线对称）。
+  // 必须在 group-box 测量之前完成，确保虚框包含已撑高后的 s2 dest 真实位置。
+  const router = canvas.querySelector('.flow-node-router');
+  if (router) {
+    const rh = router.getBoundingClientRect().height;
+    if (rh > 0) {
+      canvas.querySelectorAll('.flow-node-balancer.is-stacked').forEach(bal => {
+        const m = (bal.style.gridRow || '').match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
+        if (!m) return;
+        const r2Line = +m[2];
+        const lastRow = r2Line - 1;
+        const spacer = document.createElement('div');
+        spacer.className = 'flow-row-mirror';
+        spacer.style.gridColumn = '9';
+        spacer.style.gridRow = String(lastRow);
+        spacer.style.minHeight = rh + 'px';
+        canvas.appendChild(spacer);
+      });
+    }
+  }
+
   // 路由 bus → 第 2 行起的分支箭头
   {
     const bus = canvas.querySelector('.flow-arrow-d-bus');
@@ -2271,36 +2296,8 @@ function renderFlowCanvas(host, inbs, rules, rows, hasRouting, balancers, obs) {
       });
     }
 
-    // 堆叠 balancer → s2 水平连线
-    const bypasses = Array.from(canvas.querySelectorAll('.flow-arrow-r-bypass'));
-    if (bypasses.length) {
-      const cRect2 = canvas.getBoundingClientRect();
-      const ox2 = canvas.scrollLeft - cRect2.left;
-      const oy2 = canvas.scrollTop - cRect2.top;
-      bypasses.forEach(bp => {
-        const rowStart2 = parseInt(bp.style.gridRow.split('/')[0]);
-        const bal = canvas.querySelector('.flow-node-balancer[style*="grid-row:' + rowStart2 + '"]');
-        if (!bal) return;
-        const s2 = canvas.querySelector('.flow-node-dest[style*="grid-column:' + destStartCol + '"][style*="grid-row:' + (rowStart2 + 1) + '"]');
-        if (!s2) return;
-        const balR = bal.getBoundingClientRect();
-        const s2R = s2.getBoundingClientRect();
-        const x1 = balR.right + ox2;
-        const x2 = s2R.left + ox2;
-        const w = x2 - x1;
-        const yMid = s2R.top + s2R.height / 2 + oy2;
-        if (w <= 0) return;
-
-        const line = document.createElement('span');
-        line.className = 'flow-bypass-elbow';
-        line.style.left = x1 + 'px';
-        line.style.top = (yMid - 1) + 'px';
-        line.style.width = w + 'px';
-        const pc = elbowColorFor(bp);
-        if (pc) line.style.setProperty('--elbow-color', pc);
-        canvas.appendChild(line);
-      });
-    }
+    // 堆叠 balancer → s2 水平连线已由 s2 自身 .flow-arrow-r.labeled 承担（与 s1 同款），
+    // 不再使用 bypass 折线，因此无需再生成 .flow-bypass-elbow。
   }
 
   // 堆叠 balancer + 其 selector 出站服务器 用虚线框圈起，表示逻辑上是一个整体。
@@ -2317,13 +2314,24 @@ function renderFlowCanvas(host, inbs, rules, rows, hasRouting, balancers, obs) {
     const oy = canvas.scrollTop - cRect.top;
     Object.keys(groups).forEach(g => {
       const els = groups[g];
+      // 堆叠 balancer 组：虚框上下边界由 dest 节点决定（s1.top / s2.bottom），
+      // 而不是由 balancer 节点决定 —— 否则 balancer 跨 r1+r2 撑高导致
+      // s1 距虚框顶 ≫ s2 距虚框底、视觉上 s2 箭头贴 dest 框下边缘。
+      // X 方向仍取并集，让虚框左右包住 balancer 框。
+      const hasBalancer = els.some(el => el.classList.contains('flow-node-balancer'));
+      const destEls = hasBalancer ? els.filter(el => el.classList.contains('flow-node-dest')) : els;
+      const yEls = destEls.length ? destEls : els;
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       els.forEach(el => {
         const r = el.getBoundingClientRect();
         if (!r.width && !r.height) return;
         minX = Math.min(minX, r.left + ox);
-        minY = Math.min(minY, r.top + oy);
         maxX = Math.max(maxX, r.right + ox);
+      });
+      yEls.forEach(el => {
+        const r = el.getBoundingClientRect();
+        if (!r.width && !r.height) return;
+        minY = Math.min(minY, r.top + oy);
         maxY = Math.max(maxY, r.bottom + oy);
       });
       if (minX === Infinity) return;
