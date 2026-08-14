@@ -489,6 +489,33 @@ go build -o v2ray-console .
             </li>
             <li><strong>规则列表</strong>：每条规则是一个可折叠卡片，字段包括：<code>ip</code>、<code>domain</code>、<code>network</code>（tcp/udp/any）、<code>port</code>、<code>protocol</code>、<code>inboundTag</code>、<code>outboundTag</code>（下拉，列出当前所有出站 tag 和 balancer tag）。</li>
         </ol>
+        <p><strong>关于 <code>AsIs</code> + <code>linear</code></strong>：这是默认推荐的组合，理解起来其实很简单——</p>
+        <ul>
+            <li><strong><code>AsIs</code>（域名策略）</strong>：<strong>不做 DNS 解析</strong>，直接拿客户端传来的域名原文（如 <code>baidu.com</code>）去匹配规则。好处是<strong>速度最快</strong>，也最贴合用户意图——访问 <code>baidu.com</code> 就匹配 <code>baidu.com</code>，不会因为 DNS 返回了某个 CDN IP 而被错误地分到代理分支。</li>
+            <li><strong><code>linear</code>（域名匹配器）</strong>：在规则集合里<strong>按顺序逐条比对</strong>，简单、可预测，调试时一眼就能看到「命中的第几条」。几十到几百条规则下，性能开销几乎可以忽略不计。</li>
+        </ul>
+        <p>所以绝大多数配置保持 <code>AsIs</code> + <code>linear</code> 即可。只有在以下场景才需要切换：</p>
+        <ul>
+            <li>大量依赖 <code>geoip:</code> 做兜底（例如「国内 IP 直连，其余代理」）→ 把 <code>domainStrategy</code> 改成 <code>IPIfNonMatch</code>，让没命中的域名再按解析出的 IP 匹配一次 <code>geoip:</code> 规则。</li>
+            <li>规则总数上千条、对每次匹配的延迟非常敏感 → 把 <code>domainMatcher</code> 改成 <code>mph</code>（最小完美哈希），用 O(1) 查找换更低的运行时开销；代价是启动时构建更慢，且每次修改规则后需要重建哈希表。</li>
+        </ul>
+
+        <h4>完整组合对照表</h4>
+        <table>
+            <thead>
+                <tr><th><code>domainStrategy</code></th><th><code>domainMatcher</code></th><th>典型场景</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>AsIs</code></td><td><code>linear</code></td><td><strong>默认推荐</strong>，绝大多数配置</td></tr>
+                <tr><td><code>AsIs</code></td><td><code>mph</code></td><td>域名规则上千条，且只按域名分流（无 geoip 兜底）</td></tr>
+                <tr><td><code>IPIfNonMatch</code></td><td><code>linear</code></td><td>域名规则 + geoip 后置兜底（如「国内 IP 直连」），规则量适中</td></tr>
+                <tr><td><code>IPIfNonMatch</code></td><td><code>mph</code></td><td>上一条 + 大规则集</td></tr>
+                <tr><td><code>IPOnDemand</code></td><td><code>linear</code></td><td>几乎纯靠 IP 分流，每次都先解析 IP</td></tr>
+                <tr><td><code>IPOnDemand</code></td><td><code>mph</code></td><td>上一条 + 大规则集</td></tr>
+            </tbody>
+        </table>
+        <p><strong>别名</strong>：<code>mph</code> 也可写成 <code>hybrid</code>；<code>IPIfNonMatch</code> 还接受 <code>ip_if_non_match</code> / <code>ip-if-non-match</code> 等下划线 / 中划线写法（v2ray-core 内部统一转小写后匹配）。</p>
+
         <p><strong>关键概念</strong>：路由是<strong>从上到下顺序匹配</strong>的——第一条命中的规则决定了这条流量的去向。在「流量走向」图里，每条规则会画一张小卡片，命中关系一目了然。</p>
         <p><strong>自动同步</strong>：改了出站的 <code>tag</code> 后，路由区块会自动重新渲染，规则下拉里会即时反映新的 tag；删掉的 tag 也会从规则和 balancer 里清掉，不会留死引用。</p>
 
