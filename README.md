@@ -243,6 +243,57 @@ sudo systemctl start v2ray-console
 
 > **路径说明**：`%h` 在 systemd 用户服务中自动展开为用户的家目录路径。如果 `v2ray-console` 安装在其他位置，请相应调整 `ExecStart` 和 `WorkingDirectory`。
 
+### Windows（使用 NSSM）
+
+Windows 下推荐用 [NSSM](https://nssm.cc/)（Non-Sucking Service Manager）将 v2ray-console 注册为系统服务，实现开机自启和崩溃自动拉起。参考：[NSSM 使用指南](https://mp.weixin.qq.com/s/9VdPRqAiOl5imE-1NsAugA)。
+
+**1. 安装服务**
+
+从 [nssm.cc](https://nssm.cc/download) 下载并解压 `nssm.exe`（建议放入 `PATH`），以**管理员身份**打开 PowerShell / CMD：
+
+```bat
+:: 安装服务（路径按实际安装位置调整）
+nssm install v2ray-console C:\Users\你的用户名\v2ray-console\v2ray-console.exe
+
+:: 启动参数
+nssm set v2ray-console AppParameters "-config C:\Users\你的用户名\v2ray-console\config.json -port 8080"
+
+:: 工作目录（config.json 用相对路径时以此目录解析）
+nssm set v2ray-console AppDirectory C:\Users\你的用户名\v2ray-console
+
+:: 日志输出
+nssm set v2ray-console AppStdout C:\Users\你的用户名\v2ray-console\stdout.log
+nssm set v2ray-console AppStderr C:\Users\你的用户名\v2ray-console\stderr.log
+
+:: 启动服务
+nssm start v2ray-console
+```
+
+服务默认为「自动」启动类型，开机即自启；进程异常退出后 NSSM 会自动重启（相当于 `KeepAlive`）。
+
+**2. 日常管理**
+
+| 命令 | 说明 |
+|------|------|
+| `nssm start v2ray-console` | 启动服务 |
+| `nssm stop v2ray-console` | 停止服务 |
+| `nssm restart v2ray-console` | 重启服务 |
+| `nssm status v2ray-console` | 查看服务状态 |
+| `nssm edit v2ray-console` | 打开 GUI 编辑服务配置 |
+
+**3. 卸载自启**
+
+```bat
+nssm stop v2ray-console
+nssm remove v2ray-console confirm
+```
+
+> **注意**：
+> - `nssm install` / `set` / `remove` 等写操作需要管理员权限。
+> - 如使用 geo 规则，`geoip.dat` / `geosite.dat` 放在 exe 同目录即可（v2ray-core 按二进制目录查找）。
+> - 局域网访问（`-host 0.0.0.0`）需放行防火墙：
+>   `netsh advfirewall firewall add rule name="v2ray-console" dir=in action=allow protocol=TCP localport=8080`
+
 ---
 
 ## 配置指南

@@ -294,6 +294,7 @@
             <li class="lvl-2"><a href="#开机自启">开机自启</a></li>
             <li class="lvl-3"><a href="#开机自启-macos">macOS</a></li>
             <li class="lvl-3"><a href="#开机自启-linux">Linux（使用 systemd）</a></li>
+            <li class="lvl-3"><a href="#开机自启-windows">Windows（使用 NSSM）</a></li>
             <li class="lvl-2"><a href="#配置指南">配置指南</a></li>
             <li class="lvl-3"><a href="#配置-结构总览">配置结构总览</a></li>
             <li class="lvl-3"><a href="#配置-一-log-日志">一、Log 日志</a></li>
@@ -868,6 +869,56 @@ sudo systemctl start v2ray-console
 
         <blockquote>
             <p><strong>路径说明</strong>：<code>%h</code> 在 systemd 用户服务中自动展开为用户的家目录路径。如果 <code>v2ray-console</code> 安装在其他位置，请相应调整 <code>ExecStart</code> 和 <code>WorkingDirectory</code>。</p>
+        </blockquote>
+
+        <h3 id="开机自启-windows">Windows（使用 NSSM）</h3>
+        <p>Windows 下推荐用 <a href="https://nssm.cc/">NSSM</a>（Non-Sucking Service Manager）将 v2ray-console 注册为系统服务，实现开机自启和崩溃自动拉起。参考：<a href="https://mp.weixin.qq.com/s/9VdPRqAiOl5imE-1NsAugA">NSSM 使用指南</a>。</p>
+
+        <p><strong>1. 安装服务</strong></p>
+        <p>从 <a href="https://nssm.cc/download">nssm.cc</a> 下载并解压 <code>nssm.exe</code>（建议放入 <code>PATH</code>），以<strong>管理员身份</strong>打开 PowerShell / CMD：</p>
+        <pre><code class="language-bat">:: 安装服务（路径按实际安装位置调整）
+nssm install v2ray-console C:\Users\你的用户名\v2ray-console\v2ray-console.exe
+
+:: 启动参数
+nssm set v2ray-console AppParameters "-config C:\Users\你的用户名\v2ray-console\config.json -port 8080"
+
+:: 工作目录（config.json 用相对路径时以此目录解析）
+nssm set v2ray-console AppDirectory C:\Users\你的用户名\v2ray-console
+
+:: 日志输出
+nssm set v2ray-console AppStdout C:\Users\你的用户名\v2ray-console\stdout.log
+nssm set v2ray-console AppStderr C:\Users\你的用户名\v2ray-console\stderr.log
+
+:: 启动服务
+nssm start v2ray-console
+</code></pre>
+
+        <p>服务默认为「自动」启动类型，开机即自启；进程异常退出后 NSSM 会自动重启（相当于 <code>KeepAlive</code>）。</p>
+
+        <p><strong>2. 日常管理</strong></p>
+        <table>
+            <thead><tr><th>命令</th><th>说明</th></tr></thead>
+            <tbody>
+                <tr><td><code>nssm start v2ray-console</code></td><td>启动服务</td></tr>
+                <tr><td><code>nssm stop v2ray-console</code></td><td>停止服务</td></tr>
+                <tr><td><code>nssm restart v2ray-console</code></td><td>重启服务</td></tr>
+                <tr><td><code>nssm status v2ray-console</code></td><td>查看服务状态</td></tr>
+                <tr><td><code>nssm edit v2ray-console</code></td><td>打开 GUI 编辑服务配置</td></tr>
+            </tbody>
+        </table>
+
+        <p><strong>3. 卸载自启</strong></p>
+        <pre><code class="language-bat">nssm stop v2ray-console
+nssm remove v2ray-console confirm
+</code></pre>
+
+        <blockquote>
+            <p><strong>注意</strong>：</p>
+            <ul>
+                <li><code>nssm install</code> / <code>set</code> / <code>remove</code> 等写操作需要管理员权限。</li>
+                <li>如使用 geo 规则，<code>geoip.dat</code> / <code>geosite.dat</code> 放在 exe 同目录即可（v2ray-core 按二进制目录查找）。</li>
+                <li>局域网访问（<code>-host 0.0.0.0</code>）需放行防火墙：<code>netsh advfirewall firewall add rule name="v2ray-console" dir=in action=allow protocol=TCP localport=8080</code></li>
+            </ul>
         </blockquote>
 
         <hr>
