@@ -6,3 +6,5 @@ config.json
 .workbuddy/
 .vscode/
 .tmp
+.omo
+.playwright-mcp
