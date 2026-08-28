@@ -8,3 +8,5 @@ config.json
 .tmp
 .omo
 .playwright-mcp
+rsrc_windows_*
+nssm.exe
