@@ -4,6 +4,7 @@
 
 ## 功能
 
+- **双端界面** — 客户端页（默认，本机代理上网）与服务端页（`/server.html`，对外提供代理服务、用户管理），按机器角色选用，互不干扰
 - **Web 管理界面** — 浏览器中查看/编辑 V2Ray JSON 配置，支持可视化表单和 JSON 双模式
 - **启停控制** — 一键启动、停止、重启 V2Ray 核心
 - **系统代理一键开关** — 一键将系统全局代理指向本地入站（macOS / Windows / GNOME Linux），本机和内网地址自动绕过
@@ -1457,9 +1458,11 @@ curl -X POST http://localhost:8080/api/restart
 ├── api/
 │   └── handlers.go      # REST API 路由和处理器
 ├── web/
-│   ├── index.html       # Web 管理界面（HTML 结构）
+│   ├── index.html       # 客户端管理界面（HTML 结构）
 │   ├── styles.css       # UI 样式（含浅色/深色主题）
-│   └── app.js           # 前端交互逻辑
+│   ├── app.js           # 客户端页交互逻辑
+│   ├── server.html      # 服务端管理界面（用户/入站管理）
+│   └── server.js        # 服务端页交互逻辑
 ├── icons/
 │   ├── favicon-16x16.png
 │   ├── favicon-32x32.png
