@@ -122,10 +122,49 @@ async function doStart() {
 async function doStop() {
   try { await api('/api/stop', 'POST'); showToast('V2Ray 已停止'); checkStatus(); }
   catch(e) { showToast('停止失败: ' + e.message, 'error'); }
+  // 引擎停止后提醒用户系统代理状态，避免流量中断
+  await refreshSysProxy();
+  if (_sysProxy.enabled) showToast('V2Ray 已停止但系统代理仍开启，建议关闭系统代理', 'warning');
 }
 async function doRestart() {
   try { await api('/api/restart', 'POST'); showToast('V2Ray 已重启'); checkStatus(); }
   catch(e) { showToast('重启失败: ' + e.message, 'error'); }
+}
+
+// ─── 系统全局代理 ─────────────────────────────
+let _sysProxy = { supported: true, enabled: false };
+
+async function refreshSysProxy() {
+  try {
+    _sysProxy = await api('/api/sysproxy');
+  } catch(e) {
+    _sysProxy = { supported: false, enabled: false };
+  }
+  renderSysProxy();
+}
+
+function renderSysProxy() {
+  const btn = document.getElementById('btnSysProxy');
+  if (!btn) return;
+  const on = !!_sysProxy.enabled;
+  btn.classList.toggle('active', on);
+  btn.disabled = !_sysProxy.supported;
+  btn.title = !_sysProxy.supported
+    ? '当前系统不支持自动设置代理'
+    : (on ? '点击关闭系统全局代理' : '一键开启系统全局代理（指向本地入站）');
+}
+
+async function toggleSysProxy() {
+  const action = _sysProxy.enabled ? 'disable' : 'enable';
+  const btn = document.getElementById('btnSysProxy');
+  if (btn) btn.disabled = true;
+  try {
+    const res = await api('/api/sysproxy/' + action, 'POST');
+    showToast(res.message || '系统代理已更新');
+  } catch(e) {
+    showToast('操作失败: ' + e.message, 'error');
+  }
+  await refreshSysProxy();
 }
 
 // ─── State & Defaults ──────────────────────────
@@ -2489,4 +2528,5 @@ document.addEventListener('input', (e) => {
 updateOverview();
 checkStatus();
 setInterval(checkStatus, 5000);
+refreshSysProxy();
 refreshConfig().catch(() => {});

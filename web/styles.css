@@ -677,6 +677,24 @@ body {
   color: var(--text);
 }
 
+/* 系统代理开关：默认与 outline 同风格，开启后高亮为 success */
+.btn-sysproxy {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border-color: var(--border);
+}
+.btn-sysproxy:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+.btn-sysproxy.active {
+  background: var(--success);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--success) 30%, transparent);
+}
+.btn-sysproxy.active:hover:not(:disabled) { filter: brightness(1.08); }
+
 .btn-sm { padding: 6px 12px; font-size: 12px; }
 .btn-xs { padding: 4px 9px; font-size: 11px; border-radius: var(--radius-sm); }
 
@@ -2148,7 +2166,7 @@ body {
     grid-template-columns: 1fr;
     padding: 16px;
   }
-  .status-controls { width: 100%; }
+  .status-controls { width: 100%; flex-wrap: wrap; }
   .status-controls .btn { flex: 1; }
   .card-header {
     flex-direction: column;
