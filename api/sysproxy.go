@@ -260,63 +260,7 @@ func parseDarwinProxyOut(out string) (enabled bool, server string, port int) {
 	return enabled, server, port
 }
 
-// ─── Windows（注册表） ─────────────────────────────────────────────────────
-
-const winProxyRegPath = `HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings`
-
-// 通知系统代理设置已变化（best-effort，失败不影响设置结果）
-const winProxyRefreshPS = `Add-Type -MemberDefinition '[DllImport("wininet.dll")] public static extern bool InternetSetOption(IntPtr h, int o, IntPtr b, int l);' -Name WinINET -Namespace P; [P.WinINET]::InternetSetOption([IntPtr]::Zero, 39, [IntPtr]::Zero, 0) | Out-Null; [P.WinINET]::InternetSetOption([IntPtr]::Zero, 37, [IntPtr]::Zero, 0) | Out-Null`
-
-func winRegAdd(name, typ, value string) error {
-	_, err := runCmd(sysCmdTimeout, "reg", "add", winProxyRegPath, "/v", name, "/t", typ, "/d", value, "/f")
-	return err
-}
-
-func windowsSysProxyEnable(t sysProxyTarget) error {
-	// 有 HTTP 入站时统一走 "host:port"；只有 SOCKS 时用 socks= 前缀强制 SOCKS
-	var server string
-	if t.httpPort > 0 {
-		server = fmt.Sprintf("%s:%d", t.addr, t.httpPort)
-	} else {
-		server = fmt.Sprintf("socks=%s:%d", t.addr, t.socksPort)
-	}
-	if err := winRegAdd("ProxyServer", "REG_SZ", server); err != nil {
-		return err
-	}
-	if err := winRegAdd("ProxyEnable", "REG_DWORD", "1"); err != nil {
-		return err
-	}
-	_, _ = runCmd(sysCmdTimeout, "powershell", "-NoProfile", "-Command", winProxyRefreshPS)
-	return nil
-}
-
-func windowsSysProxyDisable() error {
-	if err := winRegAdd("ProxyEnable", "REG_DWORD", "0"); err != nil {
-		return err
-	}
-	_, _ = runCmd(sysCmdTimeout, "powershell", "-NoProfile", "-Command", winProxyRefreshPS)
-	return nil
-}
-
-func windowsSysProxyStatus() SysProxyStatus {
-	st := SysProxyStatus{Supported: true}
-	out, err := runCmd(sysCmdTimeout, "reg", "query", winProxyRegPath, "/v", "ProxyEnable")
-	if err != nil {
-		return st
-	}
-	st.Enabled = strings.Contains(out, "0x1")
-	if st.Enabled {
-		if out, err := runCmd(sysCmdTimeout, "reg", "query", winProxyRegPath, "/v", "ProxyServer"); err == nil {
-			for _, line := range strings.Split(out, "\n") {
-				if i := strings.Index(line, "REG_SZ"); i >= 0 {
-					st.Server = strings.TrimSpace(line[i+len("REG_SZ"):])
-					break
-				}
-			}
-		}
-	}
-	return st
-}
+// ─── Windows（api/sysproxy_windows.go，注册表 API + wininet syscall） ──────
 
 // ─── Linux（gsettings / GNOME） ────────────────────────────────────────────
 

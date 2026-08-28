@@ -23,9 +23,26 @@ build-linux:
 	GOOS=linux GOARCH=amd64 go build $(BUILD_FLAGS) -o v2ray-console-linux-amd64 .
 	GOOS=linux GOARCH=arm64 go build $(BUILD_FLAGS) -o v2ray-console-linux-arm64 .
 
-# Windows 产物（amd64）
-build-windows:
+# Windows 产物（amd64 / arm64）
+# 前置：需安装 go-winres（一次性：go install github.com/tc-hib/go-winres@latest）
+# Windows 清单请求 requireAdministrator：netsh winhttp 写 HKLM 需要管理员令牌，
+# 启动时会弹一次 UAC（仅一次）。
+WINDOWS_SYSO_AMD64 := rsrc_windows_amd64.syso
+WINDOWS_SYSO_ARM64 := rsrc_windows_arm64.syso
+WINDOWS_SYSO := $(WINDOWS_SYSO_AMD64) $(WINDOWS_SYSO_ARM64)
+
+build-windows: $(WINDOWS_SYSO)
 	GOOS=windows GOARCH=amd64 go build $(BUILD_FLAGS) -o v2ray-console-windows-amd64.exe .
+	GOOS=windows GOARCH=arm64 go build $(BUILD_FLAGS) -o v2ray-console-windows-arm64.exe .
+
+$(WINDOWS_SYSO):
+	@export PATH="$$(go env GOPATH 2>/dev/null)/bin:$$PATH"; \
+	command -v go-winres >/dev/null 2>&1 || { \
+		echo "错误：缺少 go-winres。请先执行：go install github.com/tc-hib/go-winres@latest"; \
+		exit 1; }; \
+	go-winres simply --arch "amd64,arm64" --admin --manifest gui \
+		--file-description "V2Ray Console Management Panel" \
+		--product-name "v2ray-console" --out rsrc
 
 # macOS 产物（amd64 / arm64）
 build-darwin:
@@ -60,3 +77,4 @@ clean:
 	rm -f v2ray-console-darwin-*
 	rm -f v2ray-console-linux-*
 	rm -f v2ray-console-windows-*
+	rm -f rsrc_windows_amd64.syso rsrc_windows_arm64.syso
