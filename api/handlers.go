@@ -33,6 +33,11 @@ func (h *Handler) RegisterRoutes() http.Handler {
 	mux.HandleFunc("/api/stop", h.handleStop)
 	mux.HandleFunc("/api/restart", h.handleRestart)
 
+	// 系统全局代理
+	mux.HandleFunc("/api/sysproxy", h.handleSysProxyStatus)
+	mux.HandleFunc("/api/sysproxy/enable", h.handleSysProxyEnable)
+	mux.HandleFunc("/api/sysproxy/disable", h.handleSysProxyDisable)
+
 	// favicon 重定向（浏览器默认请求 /favicon.ico）
 	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/icons/favicon-32x32.png", http.StatusMovedPermanently)
