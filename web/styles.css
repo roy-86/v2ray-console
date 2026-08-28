@@ -1270,6 +1270,7 @@ body {
   transition: var(--transition);
 }
 .template-icon.blue { background: var(--tag-socks-bg); color: var(--tag-socks-fg); }
+.template-icon.violet { background: var(--tag-vmess-bg); color: var(--tag-vmess-fg); }
 .template-icon.amber { background: var(--tag-http-bg); color: var(--tag-http-fg); }
 .template-icon.pink { background: var(--tag-vless-bg); color: var(--tag-vless-fg); }
 .template-icon.green { background: var(--tag-ss-bg); color: var(--tag-ss-fg); }

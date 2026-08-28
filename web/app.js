@@ -1532,6 +1532,35 @@ function formatConfig() {
 // ─── Templates ─────────────────────────────────
 function loadTemplate(name) {
   const templates = {
+    // 免 geoip.dat / geosite.dat：分流只用裸网段，无需下载 geo 数据文件
+    'socks-direct': {
+      "inbounds": [{
+        "port": 10808, "listen": "127.0.0.1", "protocol": "socks",
+        "settings": { "udp": true }, "tag": "socks-in"
+      }],
+      "outbounds": [{
+        "protocol": "vmess",
+        "settings": {
+          "vnext": [{
+            "address": "your-server.com", "port": 443,
+            "users": [{ "id": "your-uuid-here", "security": "auto" }]
+          }]
+        },
+        "streamSettings": { "network": "ws", "security": "tls", "wsSettings": { "path": "/" } },
+        "tag": "proxy"
+      },
+      { "protocol": "freedom", "tag": "direct" }],
+      "routing": {
+        "settings": {
+          "domainStrategy": "AsIs",
+          "rules": [{
+            "type": "field",
+            "ip": ["127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "::1/128", "fc00::/7", "fe80::/10"],
+            "outboundTag": "direct"
+          }]
+        }
+      }
+    },
     'socks-client': {
       "inbounds": [{
         "port": 10808, "listen": "127.0.0.1", "protocol": "socks",
