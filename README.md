@@ -6,7 +6,8 @@
 
 - **Web 管理界面** — 浏览器中查看/编辑 V2Ray JSON 配置，支持可视化表单和 JSON 双模式
 - **启停控制** — 一键启动、停止、重启 V2Ray 核心
-- **配置模板** — 内置 SOCKS5 / HTTP 客户端模板，快速上手
+- **系统代理一键开关** — 一键将系统全局代理指向本地入站（macOS / Windows / GNOME Linux），本机和内网地址自动绕过
+- **配置模板** — 内置 SOCKS5 / HTTP 等客户端模板快速上手；首位「SOCKS5 + 内网直连」模板用裸网段分流，无需 geoip.dat / geosite.dat 开箱即用
 - **UUID 生成器** — 表单内一键生成随机 UUID，方便 VMess 用户配置
 - **REST API** — 支持远程管理，方便集成其他工具
 - **实时状态** — 自动轮询显示运行状态和版本信息
@@ -16,10 +17,10 @@
 ### 前置条件
 
 - Go 1.21+
-- `geoip.dat` 和 `geosite.dat`（路由规则需要）
+- `geoip.dat` 和 `geosite.dat` — **仅当**路由 / DNS 配置引用 `geoip:` / `geosite:` 前缀时需要；不用 geo 规则（如内置「内网直连」模板）可跳过
 
 ```bash
-# 下载 geo 数据文件（首次运行前必须）
+# 下载 geo 数据文件（仅当配置使用 geoip:/geosite: 规则时需要，否则可跳过）
 curl -sL -o geoip.dat "https://github.com/v2fly/geoip/releases/latest/download/geoip.dat"
 curl -sL -o geosite.dat "https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat"
 ```
@@ -133,7 +134,7 @@ launchctl list com.v2ray.console
 | `StandardOutPath` / `StandardErrorPath` | 日志输出路径 |
 | `EnvironmentVariables` | 设置环境变量（如 `{"PATH": "/usr/local/bin:..."}`） |
 
-> **注意**：`WorkingDirectory` 必须设置为包含 `geoip.dat` 和 `geosite.dat` 的目录，否则路由规则会加载失败。
+> **注意**：如果配置使用了 geo 规则，`geoip.dat` 和 `geosite.dat` 需放在**可执行文件同目录**（v2ray-core 按二进制目录查找，而非工作目录；LaunchAgent 示例中 `WorkingDirectory` 恰好同目录）。未使用 geo 规则可忽略本条。
 
 ---
 
@@ -1265,6 +1266,8 @@ Reality 是 VLESS 的专属安全传输，无需 TLS 证书即可实现 TLS 级�
 
 > 国内域名/IP 走直连，其余走代理。需要 `geoip.dat` 和 `geosite.dat`。
 
+> **不想下载 geo 文件？** 把 geo 规则换成具体网段即可——内置模板「SOCKS5 + 内网直连」就是这么做的，例如内网直连：`{ "type": "field", "ip": ["127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"], "outboundTag": "direct" }`。
+
 #### 模式 C：VLESS + Reality（现代推荐方案）
 
 ```json
@@ -1372,6 +1375,9 @@ Reality 是 VLESS 的专属安全传输，无需 TLS 证书即可实现 TLS 级�
 | `POST` | `/api/start` | 启动 V2Ray |
 | `POST` | `/api/stop` | 停止 V2Ray |
 | `POST` | `/api/restart` | 重启 V2Ray |
+| `GET` | `/api/sysproxy` | 查询系统全局代理状态 |
+| `POST` | `/api/sysproxy/enable` | 一键开启系统全局代理（自动指向本地 HTTP/SOCKS 入站，需 V2Ray 运行中） |
+| `POST` | `/api/sysproxy/disable` | 关闭系统全局代理 |
 
 所有 API 均返回 JSON，支持 CORS 跨域。
 
@@ -1422,7 +1428,11 @@ curl -X POST http://localhost:8080/api/restart
 
 ### 找不到 geoip.dat
 
-如果配置中使用了 `geoip:private` 等路由规则，必须下载 `geoip.dat` 到与可执行文件相同的目录。参考[快速开始](#快速开始)中的下载命令。
+`geoip.dat` / `geosite.dat` **不是运行必需的**，只有配置引用了 `geoip:` / `geosite:` 前缀时才需要——包括 `geoip:private`（它同样从 geoip.dat 加载，并非内置）。规则只用裸 IP 段（如 `10.0.0.0/8`）或具体域名、或完全没有 routing 配置，则无需这些文件（内置模板「SOCKS5 + 内网直连」即不依赖它们）。
+
+**报错有误导性**：配置引用了 geo 规则但文件缺失时，v4 加载失败后回退到 v5 加载器，最终报 `unknown field "grpcSettings"` 之类的错——真实原因是 geo 文件缺失，与该字段无关。
+
+文件查找顺序：可执行文件所在目录 → `V2RAY_LOCATION_ASSET` 环境变量指定的目录 → `/usr/local/share/v2ray` 等系统目录。下载命令见[快速开始](#快速开始)。
 
 ### 端口被占用
 

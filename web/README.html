@@ -324,7 +324,8 @@
         <ul>
             <li><strong>Web 管理界面</strong> — 浏览器中查看/编辑 V2Ray JSON 配置，支持可视化表单和 JSON 双模式</li>
             <li><strong>启停控制</strong> — 一键启动、停止、重启 V2Ray 核心</li>
-            <li><strong>配置模板</strong> — 内置 SOCKS5 / HTTP 客户端模板，快速上手</li>
+            <li><strong>系统代理一键开关</strong> — 一键将系统全局代理指向本地入站（macOS / Windows / GNOME Linux），本机和内网地址自动绕过</li>
+            <li><strong>配置模板</strong> — 内置 SOCKS5 / HTTP 等客户端模板快速上手；首位「SOCKS5 + 内网直连」模板用裸网段分流，无需 geoip.dat / geosite.dat 开箱即用</li>
             <li><strong>UUID 生成器</strong> — 表单内一键生成随机 UUID，方便 VMess 用户配置</li>
             <li><strong>REST API</strong> — 支持远程管理，方便集成其他工具</li>
             <li><strong>实时状态</strong> — 自动轮询显示运行状态和版本信息</li>
@@ -335,10 +336,10 @@
         <h3 id="快速开始-前置条件">前置条件</h3>
         <ul>
             <li>Go 1.21+</li>
-            <li><code>geoip.dat</code> 和 <code>geosite.dat</code>（路由规则需要）</li>
+            <li><code>geoip.dat</code> 和 <code>geosite.dat</code> — <strong>仅当</strong>路由 / DNS 配置引用 <code>geoip:</code> / <code>geosite:</code> 前缀时需要；不用 geo 规则（如内置「内网直连」模板）可跳过</li>
         </ul>
 
-        <pre><code class="language-bash"># 下载 geo 数据文件（首次运行前必须）
+        <pre><code class="language-bash"># 下载 geo 数据文件（仅当配置使用 geoip:/geosite: 规则时需要，否则可跳过）
 curl -sL -o geoip.dat "https://github.com/v2fly/geoip/releases/latest/download/geoip.dat"
 curl -sL -o geosite.dat "https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat"
 </code></pre>
@@ -769,7 +770,7 @@ launchctl list com.v2ray.console
         </table>
 
         <blockquote>
-            <p><strong>注意</strong>：<code>WorkingDirectory</code> 必须设置为包含 <code>geoip.dat</code> 和 <code>geosite.dat</code> 的目录，否则路由规则会加载失败。</p>
+            <p><strong>注意</strong>：如果配置使用了 geo 规则，<code>geoip.dat</code> 和 <code>geosite.dat</code> 需放在<strong>可执行文件同目录</strong>（v2ray-core 按二进制目录查找，而非工作目录；LaunchAgent 示例中 <code>WorkingDirectory</code> 恰好同目录）。未使用 geo 规则可忽略本条。</p>
         </blockquote>
 
         <hr>
@@ -1883,6 +1884,7 @@ sudo systemctl start v2ray-console
 </code></pre>
         <blockquote>
             <p>国内域名/IP 走直连，其余走代理。需要 <code>geoip.dat</code> 和 <code>geosite.dat</code>。</p>
+            <p><strong>不想下载 geo 文件？</strong> 把 geo 规则换成具体网段即可——内置模板「SOCKS5 + 内网直连」就是这么做的，例如内网直连：<code>{ "type": "field", "ip": ["127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"], "outboundTag": "direct" }</code>。</p>
         </blockquote>
 
         <h4>模式 C：VLESS + Reality（现代推荐方案）</h4>
@@ -1991,6 +1993,9 @@ sudo systemctl start v2ray-console
                 <tr><td><code>POST</code></td><td><code>/api/start</code></td><td>启动 V2Ray</td></tr>
                 <tr><td><code>POST</code></td><td><code>/api/stop</code></td><td>停止 V2Ray</td></tr>
                 <tr><td><code>POST</code></td><td><code>/api/restart</code></td><td>重启 V2Ray</td></tr>
+                <tr><td><code>GET</code></td><td><code>/api/sysproxy</code></td><td>查询系统全局代理状态</td></tr>
+                <tr><td><code>POST</code></td><td><code>/api/sysproxy/enable</code></td><td>一键开启系统全局代理（自动指向本地 HTTP/SOCKS 入站，需 V2Ray 运行中）</td></tr>
+                <tr><td><code>POST</code></td><td><code>/api/sysproxy/disable</code></td><td>关闭系统全局代理</td></tr>
             </tbody>
         </table>
         <p>所有 API 均返回 JSON，支持 CORS 跨域。</p>
@@ -2036,7 +2041,9 @@ curl -X POST http://localhost:8080/api/restart
         <p>配置文件使用了 V2Ray v5 JSONv5 格式的字段名（如 <code>transport</code>、<code>transportSettings</code>、<code>router</code>）。请使用 V2Ray v4 JSON 格式（<code>network</code>、<code>wsSettings</code>、<code>routing</code>），与官方 Docker 镜像保持一致。</p>
 
         <h3>找不到 geoip.dat</h3>
-        <p>如果配置中使用了 <code>geoip:private</code> 等路由规则，必须下载 <code>geoip.dat</code> 到与可执行文件相同的目录。参考<a href="#快速开始">快速开始</a>中的下载命令。</p>
+        <p><code>geoip.dat</code> / <code>geosite.dat</code> <strong>不是运行必需的</strong>，只有配置引用了 <code>geoip:</code> / <code>geosite:</code> 前缀时才需要——包括 <code>geoip:private</code>（它同样从 geoip.dat 加载，并非内置）。规则只用裸 IP 段（如 <code>10.0.0.0/8</code>）或具体域名、或完全没有 routing 配置，则无需这些文件（内置模板「SOCKS5 + 内网直连」即不依赖它们）。</p>
+        <p><strong>报错有误导性</strong>：配置引用了 geo 规则但文件缺失时，v4 加载失败后回退到 v5 加载器，最终报 <code>unknown field "grpcSettings"</code> 之类的错——真实原因是 geo 文件缺失，与该字段无关。</p>
+        <p>文件查找顺序：可执行文件所在目录 → <code>V2RAY_LOCATION_ASSET</code> 环境变量指定的目录 → <code>/usr/local/share/v2ray</code> 等系统目录。下载命令见<a href="#快速开始">快速开始</a>。</p>
 
         <h3>端口被占用</h3>
         <p>默认 SOCKS 入站使用 1080 端口。如果端口冲突，在 Web 界面中修改配置文件的 <code>inbounds[].port</code> 即可。</p>
