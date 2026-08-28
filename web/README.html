@@ -872,6 +872,12 @@ sudo systemctl start v2ray-console
             <p><strong>路径说明</strong>：<code>%h</code> 在 systemd 用户服务中自动展开为用户的家目录路径。如果 <code>v2ray-console</code> 安装在其他位置，请相应调整 <code>ExecStart</code> 和 <code>WorkingDirectory</code>。</p>
         </blockquote>
 
+        <h4 id="win-build-prereq">Windows 构建前置（go-winres）</h4>
+        <p>Windows 桌面版（<code>make build-windows</code>）会在产物里嵌入 <code>requireAdministrator</code> 清单——启动时获取完整管理员令牌，<code>netsh winhttp set proxy</code> 写 HKLM 才能成功（这是 Win11 全局代理真正生效的前提）。需要一次性的清单嵌入工具：</p>
+        <pre><code class="language-bat">go install github.com/tc-hib/go-winres@latest
+</code></pre>
+        <p>之后 <code>make build-windows</code> / <code>make build-upx-all</code> 自动调用 <code>go-winres</code> 生成清单资源（首次启动 v2ray-console.exe 时会有一次 UAC 提示，之后全程拥有管理员令牌）。若不想嵌入清单、希望手动「以管理员身份运行」，可在 <code>make build-windows</code> 前用 <code>go build</code> 直接构建。</p>
+
         <h3 id="开机自启-windows">Windows（使用 NSSM）</h3>
         <p>Windows 下推荐用 <a href="https://nssm.cc/">NSSM</a>（Non-Sucking Service Manager）将 v2ray-console 注册为系统服务，实现开机自启和崩溃自动拉起。参考：<a href="https://mp.weixin.qq.com/s/9VdPRqAiOl5imE-1NsAugA">NSSM 使用指南</a>。</p>
 
